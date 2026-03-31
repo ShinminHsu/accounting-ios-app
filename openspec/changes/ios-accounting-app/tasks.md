@@ -9,11 +9,11 @@
 
 ## 2. Database Schema
 
-- [ ] 2.1 Create Supabase tables: `users`, `accounts`, `categories`, `transactions`, `debt_records`, `projects`, `project_category_budgets`, `recurring_templates` with foreign keys and indexes
-- [ ] 2.2 Create Supabase tables: `credit_cards` (extends accounts), `credit_card_reward_rules`, `credit_card_bills`, `bill_line_items`, `pending_debits`
-- [ ] 2.3 Create Supabase tables: `friendships`, `shared_transactions`, `exchange_rates`
-- [ ] 2.4 Implement Row Level Security (RLS) policies: all personal tables restricted to `auth.uid() = user_id`; `shared_transactions` readable by both payer and payee (Supabase data isolation model per design.md)
-- [ ] 2.5 Enable Supabase Realtime on `shared_transactions` and `friendships` tables
+- [x] 2.1 Create Supabase tables: `users`, `accounts`, `categories`, `transactions`, `debt_records`, `projects`, `project_category_budgets`, `recurring_templates` with foreign keys and indexes
+- [x] 2.2 Create Supabase tables: `credit_cards` (extends accounts), `credit_card_reward_rules`, `credit_card_bills`, `bill_line_items`, `pending_debits`
+- [x] 2.3 Create Supabase tables: `friendships`, `shared_transactions`, `exchange_rates`
+- [x] 2.4 Implement Row Level Security (RLS) policies: all personal tables restricted to `auth.uid() = user_id`; `shared_transactions` readable by both payer and payee (Supabase data isolation model per design.md)
+- [x] 2.5 Enable Supabase Realtime on `shared_transactions` and `friendships` tables
 
 ## 3. Category Management
 
