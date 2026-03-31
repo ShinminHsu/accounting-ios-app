@@ -17,10 +17,10 @@
 
 ## 3. Category Management
 
-- [ ] 3.1 Seed default preset categories and subcategories (Food & Drink, Transportation, Shopping, Entertainment, Health, Housing, Travel, Education, Other) on first user login (default preset categories requirement)
-- [ ] 3.2 Build category settings screen: display two-level category hierarchy as expandable list (two-level category hierarchy requirement)
-- [ ] 3.3 Implement create custom category flow: name input, optional emoji picker, parent/subcategory toggle; enforce unique name validation within same level (create custom category requirement)
-- [ ] 3.4 Implement edit and delete categories: rename in-place; block deletion if category has assigned transactions and display reassignment prompt (edit and delete categories requirement)
+- [x] 3.1 Seed default preset categories and subcategories (Food & Drink, Transportation, Shopping, Entertainment, Health, Housing, Travel, Education, Other) on first user login (default preset categories requirement)
+- [x] 3.2 Build category settings screen: display two-level category hierarchy as expandable list (two-level category hierarchy requirement)
+- [x] 3.3 Implement create custom category flow: name input, optional emoji picker, parent/subcategory toggle; enforce unique name validation within same level (create custom category requirement)
+- [x] 3.4 Implement edit and delete categories: rename in-place; block deletion if category has assigned transactions and display reassignment prompt (edit and delete categories requirement)
 
 ## 4. Account Management
 
