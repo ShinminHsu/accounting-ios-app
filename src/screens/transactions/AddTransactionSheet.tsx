@@ -10,6 +10,7 @@ import { createTransaction } from '../../lib/transactions';
 import { fetchCategories, CategoryWithChildren } from '../../lib/categories';
 import { fetchAccounts, AccountWithBalance } from '../../lib/accounts';
 import { fetchContacts } from '../../lib/contacts';
+import { fetchActiveProjects, ProjectWithBudgets } from '../../lib/projects';
 import { Contact, PayerType } from '../../types/database';
 import { colors, typography, spacing, radius } from '../../theme';
 
@@ -33,13 +34,14 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
   const [payerType, setPayerType] = useState<PayerType>('self');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [selectedProjectId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
 
   const [categories, setCategories] = useState<CategoryWithChildren[]>([]);
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [projects, setProjects] = useState<ProjectWithBudgets[]>([]);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -48,14 +50,16 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const [cats, accs, ctcts] = await Promise.all([
+      const [cats, accs, ctcts, projs] = await Promise.all([
         fetchCategories(session.user.id),
         fetchAccounts(session.user.id),
         fetchContacts(session.user.id),
+        fetchActiveProjects(session.user.id),
       ]);
       setCategories(cats);
       setAccounts(accs);
       setContacts(ctcts);
+      setProjects(projs);
       if (accs.length > 0 && !selectedAccountId) setSelectedAccountId(accs[0].id);
     })();
   }, [visible]);
@@ -64,7 +68,7 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
     setAmount(''); setDate(new Date()); setIsIncome(false);
     setPayerType('self'); setSelectedCategoryId(null);
     setSelectedAccountId(null); setSelectedContactId(null);
-    setNotes(''); setExpandedCategory(null);
+    setSelectedProjectId(null); setNotes(''); setExpandedCategory(null);
   }
 
   async function handleSave() {
@@ -253,6 +257,26 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
                   >
                     <Text style={[styles.chipText, selectedAccountId === acc.id && styles.chipTextActive]}>
                       {acc.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Project */}
+          {projects.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>專案（選填）</Text>
+              <View style={styles.chipRow}>
+                {projects.map((p) => (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[styles.chip, selectedProjectId === p.id && styles.chipActive]}
+                    onPress={() => setSelectedProjectId(selectedProjectId === p.id ? null : p.id)}
+                  >
+                    <Text style={[styles.chipText, selectedProjectId === p.id && styles.chipTextActive]}>
+                      {p.name}
                     </Text>
                   </TouchableOpacity>
                 ))}
