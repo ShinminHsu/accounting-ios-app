@@ -8,6 +8,7 @@ import { colors } from './src/theme';
 import { AuthNavigator } from './src/navigation/AuthNavigator';
 import { MainTabNavigator } from './src/navigation/MainTabNavigator';
 import { onAuthStateChange } from './src/lib/auth';
+import { requestPushPermission } from './src/lib/notifications';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -17,6 +18,10 @@ export default function App() {
     const { data: listener } = onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setLoading(false);
+      if (newSession) {
+        // Request push permission after first sign-in
+        requestPushPermission();
+      }
     });
 
     return () => {
