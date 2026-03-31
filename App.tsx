@@ -10,6 +10,7 @@ import { MainTabNavigator } from './src/navigation/MainTabNavigator';
 import { onAuthStateChange } from './src/lib/auth';
 import { requestPushPermission } from './src/lib/notifications';
 import { seedDefaultCategories } from './src/lib/seedCategories';
+import { checkProjectCompletions } from './src/lib/projects';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -22,6 +23,7 @@ export default function App() {
       if (newSession) {
         requestPushPermission();
         seedDefaultCategories(newSession.user.id);
+        checkProjectCompletions(newSession.user.id);
       }
     });
 

@@ -42,12 +42,12 @@
 
 ## 6. Project & Budget
 
-- [ ] 6.1 Build Projects tab: list of active projects with overall budget utilization bar and per-category budget within a project breakdown; tap project to see detail
-- [ ] 6.2 Implement create project flow: name, type (Periodic/One-Time), interval (monthly/yearly for Periodic), start/end dates (for One-Time), per-category budget amounts (create and edit projects requirement)
-- [ ] 6.3 Implement periodic project monthly reset: on app open, check if current period has changed; if so, reset spent amounts for all monthly/yearly projects while preserving history (project types requirement; monthly periodic project at month boundary scenario)
-- [ ] 6.4 Implement one-time project completion: mark project as completed when today > end date; stop accepting new transaction assignments (one-time project with end date reached scenario)
-- [ ] 6.5 Implement over-budget indicator: show visual alert on project overview and category row when spend exceeds budget (category budget exceeded scenario)
-- [ ] 6.6 Implement assign transaction to project: transaction counted against project category budget; unassigned transactions counted only in overall monthly totals (assign transaction to project requirement)
+- [x] 6.1 Build Projects tab: list of active projects with overall budget utilization bar and per-category budget within a project breakdown; tap project to see detail
+- [x] 6.2 Implement create project flow: name, type (Periodic/One-Time), interval (monthly/yearly for Periodic), start/end dates (for One-Time), per-category budget amounts (create and edit projects requirement)
+- [x] 6.3 Implement periodic project monthly reset: on app open, check if current period has changed; if so, reset spent amounts for all monthly/yearly projects while preserving history (project types requirement; monthly periodic project at month boundary scenario)
+- [x] 6.4 Implement one-time project completion: mark project as completed when today > end date; stop accepting new transaction assignments (one-time project with end date reached scenario)
+- [x] 6.5 Implement over-budget indicator: show visual alert on project overview and category row when spend exceeds budget (category budget exceeded scenario)
+- [x] 6.6 Implement assign transaction to project: transaction counted against project category budget; unassigned transactions counted only in overall monthly totals (assign transaction to project requirement)
 
 ## 7. Recurring Transactions
 
