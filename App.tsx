@@ -9,6 +9,7 @@ import { AuthNavigator } from './src/navigation/AuthNavigator';
 import { MainTabNavigator } from './src/navigation/MainTabNavigator';
 import { onAuthStateChange } from './src/lib/auth';
 import { requestPushPermission } from './src/lib/notifications';
+import { seedDefaultCategories } from './src/lib/seedCategories';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -19,8 +20,8 @@ export default function App() {
       setSession(newSession);
       setLoading(false);
       if (newSession) {
-        // Request push permission after first sign-in
         requestPushPermission();
+        seedDefaultCategories(newSession.user.id);
       }
     });
 
