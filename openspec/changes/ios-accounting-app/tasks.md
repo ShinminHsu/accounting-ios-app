@@ -24,12 +24,12 @@
 
 ## 4. Account Management
 
-- [ ] 4.1 Build accounts overview screen supporting all supported account types (Cash, Bank Account, E-Payment, Credit Card, Investment): Asset and Liability groups, per-account balance in original currency, net worth total converted to TWD
-- [ ] 4.2 Implement create account flow: name, type selector (Cash/Bank/E-Payment/Credit Card/Investment), initial balance, currency selector (TWD/USD/JPY/EUR/HKD/CNY) (create an account requirement)
-- [ ] 4.3 For credit card account creation: add second step for statement closing day, payment due day, and optional auto-debit bank account (create a credit card account scenario)
-- [ ] 4.4 Implement manual exchange rate configuration screen: list of supported currencies, editable rate field per currency, warning indicator when rate is missing (manual exchange rate configuration requirement)
-- [ ] 4.5 Implement account balance calculation: sum initial balance + all inflows − all outflows; exclude "paid-by-other" transactions from balance change (account balance reflects transactions requirement)
-- [ ] 4.6 Implement edit and delete accounts: block deletion if account has transactions or non-zero balance; display explanation on block (edit and delete accounts requirement)
+- [x] 4.1 Build accounts overview screen supporting all supported account types (Cash, Bank Account, E-Payment, Credit Card, Investment): Asset and Liability groups, per-account balance in original currency, net worth total converted to TWD
+- [x] 4.2 Implement create account flow: name, type selector (Cash/Bank/E-Payment/Credit Card/Investment), initial balance, currency selector (TWD/USD/JPY/EUR/HKD/CNY) (create an account requirement)
+- [x] 4.3 For credit card account creation: add second step for statement closing day, payment due day, and optional auto-debit bank account (create a credit card account scenario)
+- [x] 4.4 Implement manual exchange rate configuration screen: list of supported currencies, editable rate field per currency, warning indicator when rate is missing (manual exchange rate configuration requirement)
+- [x] 4.5 Implement account balance calculation: sum initial balance + all inflows − all outflows; exclude "paid-by-other" transactions from balance change (account balance reflects transactions requirement)
+- [x] 4.6 Implement edit and delete accounts: block deletion if account has transactions or non-zero balance; display explanation on block (edit and delete accounts requirement)
 
 ## 5. Transaction Core
 
