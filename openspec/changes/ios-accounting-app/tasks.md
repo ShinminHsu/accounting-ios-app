@@ -2,7 +2,7 @@
 
 - [x] 1.1 Initialize React Native project with Expo managed workflow (React Native with Expo managed workflow per design.md, latest stable SDK); configure TypeScript, ESLint, and Prettier
 - [x] 1.2 Set up Supabase as backend: create project, configure environment variables for Supabase URL and anon key in Expo
-- [ ] 1.3 Implement Supabase Auth (email/password); create login, registration, and password-reset screens
+- [x] 1.3 Implement Supabase Auth (email/password); create login, registration, and password-reset screens
 - [ ] 1.4 Implement bottom tab navigation structure with 5 tabs: Home, Ledger, +, Projects, More (navigation structure per design.md)
 - [ ] 1.5 Define visual theme color tokens for Forest Green theme: primary `#4A7C59`, background `#FAF8F3`, accent sage green; apply globally via theme provider (visual theme per design.md)
 - [ ] 1.6 Configure Expo push notifications (Expo Notifications API); request permission on first launch

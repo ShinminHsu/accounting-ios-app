@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { StatusBar } from 'expo-status-bar';
+import { NavigationContainer } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { colors } from './src/theme';
 import { AuthNavigator } from './src/navigation/AuthNavigator';
+import { MainTabNavigator } from './src/navigation/MainTabNavigator';
 import { onAuthStateChange } from './src/lib/auth';
 
 export default function App() {
@@ -31,21 +34,20 @@ export default function App() {
 
   if (!session) {
     return (
-      <>
+      <SafeAreaProvider>
         <StatusBar style="dark" />
         <AuthNavigator />
-      </>
+      </SafeAreaProvider>
     );
   }
 
-  // Main app tab navigator — implemented in task 1.4
   return (
-    <>
-      <StatusBar style="dark" />
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    </>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <StatusBar style="dark" />
+        <MainTabNavigator />
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
 
