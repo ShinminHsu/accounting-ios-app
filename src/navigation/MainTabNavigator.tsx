@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TouchableOpacity, View, StyleSheet, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { colors, typography, spacing } from '../theme';
@@ -6,6 +6,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { LedgerScreen } from '../screens/LedgerScreen';
 import { ProjectsScreen } from '../screens/ProjectsScreen';
 import { MoreScreen } from '../screens/MoreScreen';
+import { AddTransactionSheet } from '../screens/transactions/AddTransactionSheet';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -17,7 +18,6 @@ export type MainTabParamList = {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-// Placeholder until AddTransactionSheet is built in task 5.1
 function AddPlaceholder() {
   return null;
 }
@@ -42,57 +42,68 @@ function TabIcon({ label, focused, isCenter }: TabBarIconProps) {
 }
 
 export function MainTabNavigator() {
+  const [showAddSheet, setShowAddSheet] = useState(false);
+
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarShowLabel: false,
-      }}
-    >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="首頁" focused={focused} />,
+    <>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: styles.tabBar,
+          tabBarShowLabel: false,
         }}
+      >
+        <Tab.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{
+            tabBarIcon: ({ focused }) => <TabIcon label="首頁" focused={focused} />,
+          }}
+        />
+        <Tab.Screen
+          name="Ledger"
+          component={LedgerScreen}
+          options={{
+            tabBarIcon: ({ focused }) => <TabIcon label="帳本" focused={focused} />,
+          }}
+        />
+        <Tab.Screen
+          name="Add"
+          component={AddPlaceholder}
+          options={{
+            tabBarIcon: () => <TabIcon label="＋" focused={false} isCenter />,
+            tabBarButton: (props) => (
+              <TouchableOpacity
+                {...props}
+                style={styles.centerTabButton}
+                activeOpacity={0.8}
+                onPress={() => setShowAddSheet(true)}
+              />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Projects"
+          component={ProjectsScreen}
+          options={{
+            tabBarIcon: ({ focused }) => <TabIcon label="專案" focused={focused} />,
+          }}
+        />
+        <Tab.Screen
+          name="More"
+          component={MoreScreen}
+          options={{
+            tabBarIcon: ({ focused }) => <TabIcon label="更多" focused={focused} />,
+          }}
+        />
+      </Tab.Navigator>
+
+      <AddTransactionSheet
+        visible={showAddSheet}
+        onClose={() => setShowAddSheet(false)}
+        onSaved={() => setShowAddSheet(false)}
       />
-      <Tab.Screen
-        name="Ledger"
-        component={LedgerScreen}
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="帳本" focused={focused} />,
-        }}
-      />
-      <Tab.Screen
-        name="Add"
-        component={AddPlaceholder}
-        options={{
-          tabBarIcon: () => <TabIcon label="＋" focused={false} isCenter />,
-          tabBarButton: (props) => (
-            <TouchableOpacity
-              {...props}
-              style={styles.centerTabButton}
-              activeOpacity={0.8}
-            />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Projects"
-        component={ProjectsScreen}
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="專案" focused={focused} />,
-        }}
-      />
-      <Tab.Screen
-        name="More"
-        component={MoreScreen}
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="更多" focused={focused} />,
-        }}
-      />
-    </Tab.Navigator>
+    </>
   );
 }
 

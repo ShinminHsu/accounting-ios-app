@@ -33,12 +33,12 @@
 
 ## 5. Transaction Core
 
-- [ ] 5.1 Build transaction entry sheet (triggered by + tab): amount input, date picker (default today), category/subcategory selector, account selector, project selector, notes field, payer type selector (self / paid-by-other / paid-for-other) (record a transaction requirement)
-- [ ] 5.2 Implement double-entry debt model on transaction save (double-entry debt model per design.md): liability record (others paid for me) — "paid-by-other" creates expense + liability, account balance unchanged; receivable record (I paid for others) — "paid-for-other" creates cash outflow + receivable, no budget impact
-- [ ] 5.3 Implement transaction edit screen: all fields editable; block payer type change if linked debt record exists and display explanation (edit a transaction requirement)
-- [ ] 5.4 Implement transaction deletion: cascade-delete linked debt record; reverse account balance and budget impact (delete a transaction requirement)
-- [ ] 5.5 Build Ledger tab: monthly calendar view with per-day expense total; tap day to see transaction list ordered by time descending; empty state for days with no transactions (view transactions by date requirement)
-- [ ] 5.6 Add list view toggle in Ledger tab: show all transactions for selected month in chronological order with search/filter by category
+- [x] 5.1 Build transaction entry sheet (triggered by + tab): amount input, date picker (default today), category/subcategory selector, account selector, project selector, notes field, payer type selector (self / paid-by-other / paid-for-other) (record a transaction requirement)
+- [x] 5.2 Implement double-entry debt model on transaction save (double-entry debt model per design.md): liability record (others paid for me) — "paid-by-other" creates expense + liability, account balance unchanged; receivable record (I paid for others) — "paid-for-other" creates cash outflow + receivable, no budget impact
+- [x] 5.3 Implement transaction edit screen: all fields editable; block payer type change if linked debt record exists and display explanation (edit a transaction requirement)
+- [x] 5.4 Implement transaction deletion: cascade-delete linked debt record; reverse account balance and budget impact (delete a transaction requirement)
+- [x] 5.5 Build Ledger tab: monthly calendar view with per-day expense total; tap day to see transaction list ordered by time descending; empty state for days with no transactions (view transactions by date requirement)
+- [x] 5.6 Add list view toggle in Ledger tab: show all transactions for selected month in chronological order with search/filter by category
 
 ## 6. Project & Budget
 
