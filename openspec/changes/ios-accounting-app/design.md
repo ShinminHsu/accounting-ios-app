@@ -42,15 +42,16 @@ Alternatives considered:
 - **Notion API**: Considered during discussion; rejected — not designed for structured financial data, API rate limits, no realtime
 - **CloudKit**: Free and Apple-native, but iOS-only and no web dashboard for debugging schema
 
-### Claude API for bill OCR
+### Gemini API for bill OCR
 
-Use Claude API (vision) to parse credit card bill PDFs and screenshots into structured JSON (date, merchant, amount, category hint).
+Use Google Gemini 2.0 Flash (vision) to parse credit card bill PDFs and screenshots into structured JSON (date, merchant, amount). Gemini Flash is ~10–20x cheaper than Claude for this task (~$0.001–0.003 per bill scan) while providing sufficient accuracy for structured extraction.
 
 Alternatives considered:
+- **Claude API**: Higher quality but ~10–20x more expensive per scan; overkill for structured OCR
 - **Apple Vision framework**: On-device, free, but outputs raw text — requires custom parsing logic per bank's bill format; fragile and high maintenance
-- **GPT-4V**: Comparable capability; Claude chosen for consistency with existing tooling in this project
+- **GPT-4V**: Comparable to Claude in cost; Gemini Flash preferred for cost efficiency
 
-Cost: ~$0.01–0.05 per bill scan; acceptable for personal use.
+Cost: ~$0.001–0.003 per bill scan; negligible for personal use.
 
 ### Double-entry debt model
 

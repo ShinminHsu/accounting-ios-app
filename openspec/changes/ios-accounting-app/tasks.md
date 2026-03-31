@@ -5,7 +5,7 @@
 - [x] 1.3 Implement Supabase Auth (email/password); create login, registration, and password-reset screens
 - [x] 1.4 Implement bottom tab navigation structure with 5 tabs: Home, Ledger, +, Projects, More (navigation structure per design.md)
 - [x] 1.5 Define visual theme color tokens for Forest Green theme: primary `#4A7C59`, background `#FAF8F3`, accent sage green; apply globally via theme provider (visual theme per design.md)
-- [ ] 1.6 Configure Expo push notifications (Expo Notifications API); request permission on first launch
+- [x] 1.6 Configure Expo push notifications (Expo Notifications API); request permission on first launch
 
 ## 2. Database Schema
 
@@ -67,7 +67,7 @@
 ## 9. Credit Card Reconciliation
 
 - [ ] 9.1 Build reconciliation entry point: accessible from credit card detail screen; display bill status (pending/reconciling/reconciled) with unreconciled reminder badge (bill status and auto-debit record requirement)
-- [ ] 9.2 Implement bill upload and OCR parsing: file picker for PDF or image; upload to Supabase Storage; send to Claude API for bill OCR with prompt requesting structured JSON array of `{ date, merchant, amount }` (credit card reconciliation flow per design.md)
+- [ ] 9.2 Implement bill upload and OCR parsing: file picker for PDF or image; upload to Supabase Storage; send to Gemini API (gemini-2.0-flash) for bill OCR with prompt requesting structured JSON array of `{ date, merchant, amount }` (credit card reconciliation flow per design.md)
 - [ ] 9.3 Implement fuzzy matching: for each parsed item, find existing transactions with identical amount and date within ±3 days; auto-check matched items; add "date offset" badge for non-exact date matches; mark unmatched items as "missing" (fuzzy matching against existing transactions requirement)
 - [ ] 9.4 Handle duplicate match conflict: when two parsed items could match the same transaction, match only the closest-date item and leave the other unmatched (two parsed items with identical amount scenario)
 - [ ] 9.5 Build reconciliation confirmation screen: checklist of all parsed items with check/uncheck; inline "Add" button for missing items opens pre-filled transaction form; warn on confirm if unchecked items remain (confirmation and manual entry requirement)
