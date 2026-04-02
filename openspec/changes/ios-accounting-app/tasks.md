@@ -129,5 +129,5 @@
 - [x] 15.6 Restore AddTransactionSheet.tsx: reward preview banner (section 8.3); shared transaction write for paid-for-other (section 11.3)
 - [x] 15.7 Restore app.json: bundle identifier `com.smhsu.accountingapp` (section 14.1)
 - [x] 15.8 Restore CLAUDE.md: add dev environment constraint note (this machine cannot run `npx expo run:ios`)
-- [ ] 15.9 **[手動]** Fix Supabase email confirmation: Supabase Dashboard → Authentication → Providers → Email → 關閉「Confirm email」；並更新 RegisterScreen 成功訊息（移除「確認信已寄出」，改為直接導向登入）
-- [ ] 15.10 Commit all files (new untracked + restored tracked) and push to GitHub
+- [x] 15.9 **[手動]** Fix Supabase email confirmation: Supabase Dashboard → Authentication → Providers → Email → 關閉「Confirm email」；並更新 RegisterScreen 成功訊息（移除「確認信已寄出」，改為直接導向登入）
+- [x] 15.10 Commit all files (new untracked + restored tracked) and push to GitHub
