@@ -31,3 +31,15 @@ discuss? → propose → apply ⇄ ingest → archive
 Changes can be parked（暫存）— temporarily moved out of `openspec/changes/`. Parked changes won't appear in `spectra list` but can be found with `spectra list --parked`. To restore: `spectra unpark <name>`. The `/spectra:apply` and `/spectra:ingest` skills handle parked changes automatically.
 
 <!-- SPECTRA:END -->
+
+## 開發環境限制
+
+**此電腦太舊，無法執行 `npx expo run:ios`。**
+
+iOS build 流程：
+1. 將程式碼推上 GitHub
+2. 在另一台 Mac 上 clone/pull
+3. `npx expo run:ios --device --configuration Release`（安裝至實體裝置，拔線測試）
+4. 確認無誤後再走 EAS Build + TestFlight
+
+遇到任何需要 iOS build 或測試的任務，都要提醒使用者需切換至另一台電腦執行。

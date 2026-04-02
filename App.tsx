@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
@@ -11,6 +11,11 @@ import { onAuthStateChange } from './src/lib/auth';
 import { requestPushPermission } from './src/lib/notifications';
 import { seedDefaultCategories } from './src/lib/seedCategories';
 import { checkProjectCompletions } from './src/lib/projects';
+import { generateDueInstances } from './src/lib/recurring';
+import { executePendingDebits } from './src/lib/reconciliation';
+import {
+  subscribeToSharedTransactions, handleIncomingSharedTransaction,
+} from './src/lib/friends';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -24,6 +29,19 @@ export default function App() {
         requestPushPermission();
         seedDefaultCategories(newSession.user.id);
         checkProjectCompletions(newSession.user.id);
+        executePendingDebits(newSession.user.id);
+        generateDueInstances(newSession.user.id).then((records) => {
+          if (records.length > 0) {
+            const lines = records
+              .map((r) => `• ${r.categoryName ?? '未分類'} NT$ ${r.amount.toLocaleString('zh-TW')} (${r.date})`)
+              .join('\n');
+            Alert.alert('已自動建立定期記錄', lines);
+          }
+        });
+
+        subscribeToSharedTransactions(newSession.user.id, (sharedTxn) => {
+          handleIncomingSharedTransaction(newSession.user.id, sharedTxn);
+        });
       }
     });
 
