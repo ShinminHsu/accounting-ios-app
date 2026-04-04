@@ -229,6 +229,10 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS idx_debt_records_contact ON debt_records(user_id, contact_id);
     `,
   },
+  {
+    name: '002_transaction_name',
+    sql: `ALTER TABLE transactions ADD COLUMN name TEXT;`,
+  },
 ];
 
 // ---------------------------------------------------------------------------

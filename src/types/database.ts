@@ -80,6 +80,7 @@ export interface Transaction {
   user_id: string;
   amount: number;
   date: string;
+  name: string | null;
   category_id: string | null;
   account_id: string | null;
   project_id: string | null;

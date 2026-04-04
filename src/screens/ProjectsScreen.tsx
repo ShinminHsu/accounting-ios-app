@@ -4,10 +4,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Plus } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import { fetchActiveProjects, ProjectWithBudgets, CategoryBudget } from '../lib/projects';
 import { CreateProjectModal } from './projects/CreateProjectModal';
-import { colors, typography, spacing, radius } from '../theme';
+import { colors, typography, spacing, radius, shadows } from '../theme';
 
 export function ProjectsScreen() {
   const [projects, setProjects] = useState<ProjectWithBudgets[]>([]);
@@ -32,18 +33,11 @@ export function ProjectsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>專案</Text>
-        <TouchableOpacity onPress={() => setShowCreate(true)} style={styles.addBtn}>
-          <Text style={styles.addBtnText}>＋ 新增</Text>
-        </TouchableOpacity>
-      </View>
-
       <ScrollView contentContainerStyle={styles.scroll}>
         {projects.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>尚無專案</Text>
-            <Text style={styles.emptyHint}>點擊右上角「＋ 新增」建立專案</Text>
+            <Text style={styles.emptyHint}>點擊右下角「＋」建立專案</Text>
           </View>
         ) : (
           projects.map((p) => (
@@ -56,6 +50,10 @@ export function ProjectsScreen() {
           ))
         )}
       </ScrollView>
+
+      <TouchableOpacity style={styles.fab} onPress={() => setShowCreate(true)} activeOpacity={0.8}>
+        <Plus size={24} color={colors.white} strokeWidth={2.5} />
+      </TouchableOpacity>
 
       <CreateProjectModal
         visible={showCreate}
@@ -159,11 +157,13 @@ function CategoryBudgetRow({ budget }: { budget: CategoryBudget }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
-  headerTitle: { fontSize: typography.sizes.lg, fontWeight: typography.weights.bold, color: colors.text },
-  addBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, backgroundColor: colors.primary, borderRadius: radius.full },
-  addBtnText: { color: colors.white, fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold },
-  scroll: { padding: spacing.md, paddingBottom: spacing.xxl },
+  scroll: { padding: spacing.md, paddingBottom: 100 },
+  fab: {
+    position: 'absolute', bottom: spacing.xl, right: spacing.lg,
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+    ...shadows.lg, shadowColor: colors.primary,
+  },
   empty: { alignItems: 'center', marginTop: spacing.xxl },
   emptyTitle: { fontSize: typography.sizes.lg, fontWeight: typography.weights.semibold, color: colors.text, marginBottom: spacing.xs },
   emptyHint: { fontSize: typography.sizes.sm, color: colors.textSecondary },

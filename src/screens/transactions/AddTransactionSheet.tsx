@@ -32,6 +32,7 @@ const PAYER_LABELS: Record<PayerType, string> = {
 };
 
 export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
+  const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -67,6 +68,11 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
       setContacts(ctcts);
       setProjects(projs);
       if (accs.length > 0 && !selectedAccountId) setSelectedAccountId(accs[0].id);
+      // Auto-expand parent if a child category is already selected
+      if (selectedCategoryId) {
+        const parent = cats.find((p) => p.children.some((ch) => ch.id === selectedCategoryId));
+        if (parent) setExpandedCategory(parent.id);
+      }
     })();
   }, [visible]);
 
@@ -87,7 +93,7 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
   }, [amount, selectedCategoryId, selectedAccountId, notes, isIncome]);
 
   function reset() {
-    setAmount(''); setDate(new Date()); setIsIncome(false);
+    setName(''); setAmount(''); setDate(new Date()); setIsIncome(false);
     setPayerType('self'); setSelectedCategoryId(null);
     setSelectedAccountId(null); setSelectedContactId(null);
     setSelectedProjectId(null); setNotes(''); setExpandedCategory(null);
@@ -101,9 +107,6 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
     if (payerType !== 'paid_by_other' && !selectedAccountId) {
       Alert.alert('錯誤', '請選擇帳戶'); return;
     }
-    if (payerType !== 'self' && !selectedContactId) {
-      Alert.alert('錯誤', '請選擇聯絡人'); return;
-    }
 
     setSaving(true);
     const { data: { session } } = await supabase.auth.getSession();
@@ -112,6 +115,7 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
     const { data: savedTxn, error } = await createTransaction(session.user.id, {
       amount: parsed,
       date: date.toISOString().slice(0, 10),
+      name: name.trim() || null,
       categoryId: selectedCategoryId,
       accountId: selectedAccountId,
       projectId: selectedProjectId,
@@ -192,6 +196,16 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
             ))}
           </View>
 
+          {/* Name */}
+          <TextInput
+            style={styles.nameInput}
+            placeholder="名稱（選填）"
+            placeholderTextColor={colors.textSecondary}
+            value={name}
+            onChangeText={setName}
+            returnKeyType="next"
+          />
+
           {/* Amount */}
           <View style={styles.amountRow}>
             <Text style={styles.currency}>NT$</Text>
@@ -244,7 +258,7 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
           {/* Contact (when debt-related) */}
           {payerType !== 'self' && !isIncome && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>聯絡人</Text>
+              <Text style={styles.sectionLabel}>聯絡人（選填）</Text>
               {contacts.length === 0 ? (
                 <Text style={styles.hint}>尚無聯絡人，請先在「更多 > 聯絡人」新增</Text>
               ) : (
@@ -326,11 +340,19 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>專案（選填）</Text>
               <View style={styles.chipRow}>
+                <TouchableOpacity
+                  style={[styles.chip, selectedProjectId === null && styles.chipActive]}
+                  onPress={() => setSelectedProjectId(null)}
+                >
+                  <Text style={[styles.chipText, selectedProjectId === null && styles.chipTextActive]}>
+                    不指定
+                  </Text>
+                </TouchableOpacity>
                 {projects.map((p) => (
                   <TouchableOpacity
                     key={p.id}
                     style={[styles.chip, selectedProjectId === p.id && styles.chipActive]}
-                    onPress={() => setSelectedProjectId(selectedProjectId === p.id ? null : p.id)}
+                    onPress={() => setSelectedProjectId(p.id)}
                   >
                     <Text style={[styles.chipText, selectedProjectId === p.id && styles.chipTextActive]}>
                       {p.name}
@@ -385,6 +407,7 @@ const styles = StyleSheet.create({
   cancelText: { fontSize: typography.sizes.md, color: colors.textSecondary },
   saveText: { fontSize: typography.sizes.md, color: colors.primary, fontWeight: typography.weights.semibold },
   body: { padding: spacing.md, paddingBottom: spacing.xxl },
+  nameInput: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontSize: typography.sizes.md, color: colors.text, backgroundColor: colors.surface, marginBottom: spacing.sm },
   typeToggle: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: radius.md, padding: 4, marginBottom: spacing.md },
   typeBtn: { flex: 1, paddingVertical: spacing.sm, borderRadius: radius.sm, alignItems: 'center' },
   typeBtnActive: { backgroundColor: colors.surface, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },

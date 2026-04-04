@@ -111,10 +111,6 @@ export function MoreScreen() {
   return (
     <>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.pageHeader}>
-          <Text style={styles.pageTitle}>更多</Text>
-        </View>
-
         <ScrollView contentContainerStyle={styles.scroll}>
           <SectionHeader title="財務" />
           <MenuItem
@@ -183,18 +179,6 @@ export function MoreScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  pageHeader: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-    backgroundColor: colors.surface,
-  },
-  pageTitle: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
-    color: colors.text,
-  },
   scroll: { paddingBottom: spacing.xxl },
   sectionHeader: {
     fontSize: typography.sizes.xs,
