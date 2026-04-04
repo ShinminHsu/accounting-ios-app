@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { fetchAccounts, fetchExchangeRates, convertToTWD } from '../lib/accounts';
 import { fetchSpendingSummary, computePeriodDates } from '../lib/reports';
@@ -96,7 +97,7 @@ export function HomeScreen() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const today = new Date();
   const monthLabel = today.toLocaleDateString('zh-TW', { month: 'long' });
