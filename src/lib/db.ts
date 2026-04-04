@@ -233,6 +233,39 @@ const MIGRATIONS: { name: string; sql: string }[] = [
     name: '002_transaction_name',
     sql: `ALTER TABLE transactions ADD COLUMN name TEXT;`,
   },
+  {
+    name: '003_update_default_category_icons',
+    sql: `
+      UPDATE categories SET emoji = 'Utensils'      WHERE is_default = 1 AND name = '餐飲';
+      UPDATE categories SET emoji = 'UtensilsCrossed' WHERE is_default = 1 AND name = '早餐';
+      UPDATE categories SET emoji = 'Utensils'      WHERE is_default = 1 AND name IN ('午餐','晚餐');
+      UPDATE categories SET emoji = 'Coffee'        WHERE is_default = 1 AND name = '咖啡廳';
+      UPDATE categories SET emoji = 'GlassWater'    WHERE is_default = 1 AND name = '飲料';
+      UPDATE categories SET emoji = 'Bus'           WHERE is_default = 1 AND name = '交通';
+      UPDATE categories SET emoji = 'Train'         WHERE is_default = 1 AND name = '大眾運輸';
+      UPDATE categories SET emoji = 'Car'           WHERE is_default = 1 AND name IN ('計程車/叫車','停車費');
+      UPDATE categories SET emoji = 'Fuel'          WHERE is_default = 1 AND name = '油費';
+      UPDATE categories SET emoji = 'ShoppingBag'   WHERE is_default = 1 AND name = '購物';
+      UPDATE categories SET emoji = 'Shirt'         WHERE is_default = 1 AND name = '服飾';
+      UPDATE categories SET emoji = 'Laptop'        WHERE is_default = 1 AND name = '3C 電子';
+      UPDATE categories SET emoji = 'ShoppingCart'  WHERE is_default = 1 AND name = '超市/生鮮';
+      UPDATE categories SET emoji = 'Clapperboard'  WHERE is_default = 1 AND name = '娛樂';
+      UPDATE categories SET emoji = 'Film'          WHERE is_default = 1 AND name = '電影';
+      UPDATE categories SET emoji = 'Gamepad2'      WHERE is_default = 1 AND name = '遊戲';
+      UPDATE categories SET emoji = 'Tv'            WHERE is_default = 1 AND name = '訂閱服務';
+      UPDATE categories SET emoji = 'Heart'         WHERE is_default = 1 AND name = '健康';
+      UPDATE categories SET emoji = 'Pill'          WHERE is_default = 1 AND name = '藥局';
+      UPDATE categories SET emoji = 'Stethoscope'   WHERE is_default = 1 AND name = '診所/醫院';
+      UPDATE categories SET emoji = 'Dumbbell'      WHERE is_default = 1 AND name = '健身';
+      UPDATE categories SET emoji = 'Home'          WHERE is_default = 1 AND name = '居家';
+      UPDATE categories SET emoji = 'Key'           WHERE is_default = 1 AND name = '租金';
+      UPDATE categories SET emoji = 'Zap'           WHERE is_default = 1 AND name = '水電費';
+      UPDATE categories SET emoji = 'Wrench'        WHERE is_default = 1 AND name = '家居維修';
+      UPDATE categories SET emoji = 'Plane'         WHERE is_default = 1 AND name = '旅遊';
+      UPDATE categories SET emoji = 'BookOpen'      WHERE is_default = 1 AND name = '教育';
+      UPDATE categories SET emoji = 'Package'       WHERE is_default = 1 AND name = '其他';
+    `,
+  },
 ];
 
 // ---------------------------------------------------------------------------

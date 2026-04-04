@@ -10,6 +10,7 @@ import {
   CategoryWithChildren,
 } from '../../lib/categories';
 import { Category } from '../../types/database';
+import { CategoryIcon } from '../../components/CategoryIcon';
 import { colors, typography, spacing, radius } from '../../theme';
 
 export function CategorySettingsScreen() {
@@ -122,7 +123,9 @@ export function CategorySettingsScreen() {
               <TouchableOpacity style={styles.expandBtn} onPress={() => toggleExpand(parent.id)}>
                 <Text style={styles.arrow}>{expanded.has(parent.id) ? '▾' : '▸'}</Text>
               </TouchableOpacity>
-              <Text style={styles.parentEmoji}>{parent.emoji}</Text>
+              <View style={{ marginRight: spacing.sm }}>
+                <CategoryIcon iconKey={parent.emoji} size={18} color={colors.primary} bgColor={colors.primaryLight + '20'} containerSize={34} />
+              </View>
               <Text style={styles.parentName}>{parent.name}</Text>
               <View style={styles.actions}>
                 <TouchableOpacity onPress={() => openEdit(parent)} style={styles.actionBtn}>
@@ -141,7 +144,9 @@ export function CategorySettingsScreen() {
               <View style={styles.childrenContainer}>
                 {parent.children.map((child) => (
                   <View key={child.id} style={styles.childRow}>
-                    <Text style={styles.childEmoji}>{child.emoji}</Text>
+                    <View style={{ marginRight: spacing.sm }}>
+                      <CategoryIcon iconKey={child.emoji} size={14} color={colors.textSecondary} containerSize={26} />
+                    </View>
                     <Text style={styles.childName}>{child.name}</Text>
                     <View style={styles.actions}>
                       <TouchableOpacity onPress={() => openEdit(child)} style={styles.actionBtn}>
@@ -228,7 +233,6 @@ const styles = StyleSheet.create({
   },
   expandBtn: { marginRight: spacing.xs },
   arrow: { fontSize: typography.sizes.sm, color: colors.textSecondary, width: 16 },
-  parentEmoji: { fontSize: typography.sizes.lg, marginRight: spacing.sm },
   parentName: { flex: 1, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.text },
   childrenContainer: {
     marginLeft: spacing.lg,
@@ -240,7 +244,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderBottomWidth: 1, borderBottomColor: colors.borderLight,
   },
-  childEmoji: { fontSize: typography.sizes.md, marginRight: spacing.sm },
   childName: { flex: 1, fontSize: typography.sizes.sm, color: colors.text },
   actions: { flexDirection: 'row' },
   actionBtn: { paddingHorizontal: spacing.xs },

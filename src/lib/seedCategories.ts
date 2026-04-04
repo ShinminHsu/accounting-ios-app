@@ -2,59 +2,59 @@ import { getDb, generateUUID } from './db';
 
 const DEFAULT_CATEGORIES: { name: string; emoji: string; children: { name: string; emoji: string }[] }[] = [
   {
-    name: '餐飲', emoji: '🍽️',
+    name: '餐飲', emoji: 'Utensils',
     children: [
-      { name: '早餐', emoji: '🍳' },
-      { name: '午餐', emoji: '🥗' },
-      { name: '晚餐', emoji: '🍜' },
-      { name: '咖啡廳', emoji: '☕' },
-      { name: '飲料', emoji: '🧋' },
+      { name: '早餐', emoji: 'UtensilsCrossed' },
+      { name: '午餐', emoji: 'Utensils' },
+      { name: '晚餐', emoji: 'Utensils' },
+      { name: '咖啡廳', emoji: 'Coffee' },
+      { name: '飲料', emoji: 'GlassWater' },
     ],
   },
   {
-    name: '交通', emoji: '🚌',
+    name: '交通', emoji: 'Bus',
     children: [
-      { name: '大眾運輸', emoji: '🚇' },
-      { name: '計程車/叫車', emoji: '🚕' },
-      { name: '油費', emoji: '⛽' },
-      { name: '停車費', emoji: '🅿️' },
+      { name: '大眾運輸', emoji: 'Train' },
+      { name: '計程車/叫車', emoji: 'Car' },
+      { name: '油費', emoji: 'Fuel' },
+      { name: '停車費', emoji: 'Car' },
     ],
   },
   {
-    name: '購物', emoji: '🛍️',
+    name: '購物', emoji: 'ShoppingBag',
     children: [
-      { name: '服飾', emoji: '👗' },
-      { name: '3C 電子', emoji: '💻' },
-      { name: '超市/生鮮', emoji: '🛒' },
+      { name: '服飾', emoji: 'Shirt' },
+      { name: '3C 電子', emoji: 'Laptop' },
+      { name: '超市/生鮮', emoji: 'ShoppingCart' },
     ],
   },
   {
-    name: '娛樂', emoji: '🎬',
+    name: '娛樂', emoji: 'Clapperboard',
     children: [
-      { name: '電影', emoji: '🎞️' },
-      { name: '遊戲', emoji: '🎮' },
-      { name: '訂閱服務', emoji: '📺' },
+      { name: '電影', emoji: 'Film' },
+      { name: '遊戲', emoji: 'Gamepad2' },
+      { name: '訂閱服務', emoji: 'Tv' },
     ],
   },
   {
-    name: '健康', emoji: '🏥',
+    name: '健康', emoji: 'Heart',
     children: [
-      { name: '藥局', emoji: '💊' },
-      { name: '診所/醫院', emoji: '🩺' },
-      { name: '健身', emoji: '🏋️' },
+      { name: '藥局', emoji: 'Pill' },
+      { name: '診所/醫院', emoji: 'Stethoscope' },
+      { name: '健身', emoji: 'Dumbbell' },
     ],
   },
   {
-    name: '居家', emoji: '🏠',
+    name: '居家', emoji: 'Home',
     children: [
-      { name: '租金', emoji: '🔑' },
-      { name: '水電費', emoji: '💡' },
-      { name: '家居維修', emoji: '🔧' },
+      { name: '租金', emoji: 'Key' },
+      { name: '水電費', emoji: 'Zap' },
+      { name: '家居維修', emoji: 'Wrench' },
     ],
   },
-  { name: '旅遊', emoji: '✈️', children: [] },
-  { name: '教育', emoji: '📚', children: [] },
-  { name: '其他', emoji: '📦', children: [] },
+  { name: '旅遊', emoji: 'Plane', children: [] },
+  { name: '教育', emoji: 'BookOpen', children: [] },
+  { name: '其他', emoji: 'Package', children: [] },
 ];
 
 export async function seedDefaultCategories(userId: string): Promise<void> {
