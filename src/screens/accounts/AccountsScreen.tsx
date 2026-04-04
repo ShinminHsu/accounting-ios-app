@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, ActivityIndicator,
+  Alert, ActivityIndicator, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -13,6 +13,7 @@ import { AccountType } from '../../types/database';
 import { colors, typography, spacing, radius } from '../../theme';
 import { CreateAccountModal } from './CreateAccountModal';
 import { ExchangeRateModal } from './ExchangeRateModal';
+import { CreditCardDetailScreen } from '../creditcards/CreditCardDetailScreen';
 
 const ASSET_TYPES: AccountType[] = ['cash', 'bank', 'e_payment', 'investment'];
 const LIABILITY_TYPES: AccountType[] = ['credit_card'];
@@ -23,16 +24,31 @@ export function AccountsScreen() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [showRates, setShowRates] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<AccountWithBalance | null>(null);
+  const [unreconciledByAccount, setUnreconciledByAccount] = useState<Record<string, number>>({});
 
   const load = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    const [accs, r] = await Promise.all([
+    const today = new Date().toISOString().slice(0, 10);
+    const [accs, r, bills] = await Promise.all([
       fetchAccounts(session.user.id),
       fetchExchangeRates(session.user.id),
+      supabase
+        .from('credit_card_bills')
+        .select('credit_card_id, credit_cards!inner(account_id)')
+        .eq('user_id', session.user.id)
+        .in('status', ['pending', 'reconciling'])
+        .lte('billing_period_end', today),
     ]);
     setAccounts(accs);
     setRates(r);
+    const byAccount: Record<string, number> = {};
+    for (const b of bills.data ?? []) {
+      const accountId = (b.credit_cards as any)?.account_id;
+      if (accountId) byAccount[accountId] = (byAccount[accountId] ?? 0) + 1;
+    }
+    setUnreconciledByAccount(byAccount);
     setLoading(false);
   }, []);
 
@@ -45,7 +61,7 @@ export function AccountsScreen() {
     let total = 0;
     for (const acc of accounts) {
       const twd = convertToTWD(acc.balance, acc.currency, rates);
-      if (twd === null) return null; // missing rate
+      if (twd === null) return null;
       total += ASSET_TYPES.includes(acc.type) ? twd : -twd;
     }
     return total;
@@ -74,7 +90,6 @@ export function AccountsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Net worth card */}
         <View style={styles.netWorthCard}>
           <Text style={styles.netWorthLabel}>總資產淨值</Text>
           {netWorth !== null ? (
@@ -92,7 +107,6 @@ export function AccountsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Assets */}
         <SectionHeader title="資產" />
         {assets.map((acc) => (
           <AccountRow
@@ -103,7 +117,6 @@ export function AccountsScreen() {
           />
         ))}
 
-        {/* Liabilities */}
         <SectionHeader title="負債" />
         {liabilities.map((acc) => (
           <AccountRow
@@ -111,6 +124,8 @@ export function AccountsScreen() {
             account={acc}
             rates={rates}
             isLiability
+            unreconciledCount={unreconciledByAccount[acc.id] ?? 0}
+            onPress={acc.type === 'credit_card' ? () => setSelectedCard(acc) : undefined}
             onDelete={() => handleDelete(acc)}
           />
         ))}
@@ -132,22 +147,40 @@ export function AccountsScreen() {
         onClose={() => setShowRates(false)}
         onSaved={() => { setShowRates(false); load(); }}
       />
+
+      <Modal visible={selectedCard !== null} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={ccShell.container} edges={['top', 'bottom']}>
+          <View style={ccShell.header}>
+            <TouchableOpacity onPress={() => setSelectedCard(null)} style={ccShell.backBtn}>
+              <Text style={ccShell.backText}>‹ 返回</Text>
+            </TouchableOpacity>
+            <Text style={ccShell.title}>{selectedCard?.name ?? ''}</Text>
+            <View style={ccShell.backBtn} />
+          </View>
+          {selectedCard && (
+            <CreditCardDetailScreen
+              accountId={selectedCard.id}
+              accountName={selectedCard.name}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 function SectionHeader({ title }: { title: string }) {
-  return (
-    <Text style={styles.sectionHeader}>{title}</Text>
-  );
+  return <Text style={styles.sectionHeader}>{title}</Text>;
 }
 
 function AccountRow({
-  account, rates, isLiability = false, onDelete,
+  account, rates, isLiability = false, unreconciledCount = 0, onPress, onDelete,
 }: {
   account: AccountWithBalance;
   rates: Record<string, number>;
   isLiability?: boolean;
+  unreconciledCount?: number;
+  onPress?: () => void;
   onDelete: () => void;
 }) {
   const twd = convertToTWD(account.balance, account.currency, rates);
@@ -156,9 +189,20 @@ function AccountRow({
     : account.balance >= 0 ? colors.text : colors.expense;
 
   return (
-    <View style={styles.accountRow}>
+    <TouchableOpacity
+      style={styles.accountRow}
+      onPress={onPress}
+      activeOpacity={onPress ? 0.6 : 1}
+    >
       <View style={styles.accountInfo}>
-        <Text style={styles.accountName}>{account.name}</Text>
+        <View style={styles.accountNameRow}>
+          <Text style={styles.accountName}>{account.name}</Text>
+          {unreconciledCount > 0 && (
+            <View style={styles.unreconciledBadge}>
+              <Text style={styles.unreconciledBadgeText}>{unreconciledCount}</Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.accountType}>{ACCOUNT_TYPE_LABELS[account.type]}</Text>
       </View>
       <View style={styles.accountBalance}>
@@ -175,7 +219,7 @@ function AccountRow({
       <TouchableOpacity onPress={onDelete} style={styles.deleteBtn}>
         <Text style={styles.deleteBtnText}>刪除</Text>
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -195,7 +239,10 @@ const styles = StyleSheet.create({
   sectionHeader: { fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textSecondary, marginTop: spacing.md, marginBottom: spacing.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
   accountRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.xs },
   accountInfo: { flex: 1 },
+  accountNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   accountName: { fontSize: typography.sizes.md, fontWeight: typography.weights.medium, color: colors.text },
+  unreconciledBadge: { backgroundColor: colors.expense, borderRadius: radius.full, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  unreconciledBadgeText: { color: colors.white, fontSize: typography.sizes.xs, fontWeight: typography.weights.bold },
   accountType: { fontSize: typography.sizes.xs, color: colors.textSecondary, marginTop: 2 },
   accountBalance: { alignItems: 'flex-end', marginRight: spacing.sm },
   balanceText: { fontSize: typography.sizes.md, fontWeight: typography.weights.semibold },
@@ -204,4 +251,17 @@ const styles = StyleSheet.create({
   deleteBtnText: { fontSize: typography.sizes.xs, color: colors.expense },
   addBtn: { borderWidth: 1, borderColor: colors.primary, borderStyle: 'dashed', borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.md },
   addBtnText: { color: colors.primary, fontSize: typography.sizes.md },
+});
+
+const ccShell = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    borderBottomWidth: 1, borderBottomColor: colors.borderLight,
+    backgroundColor: colors.surface,
+  },
+  title: { fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.text },
+  backBtn: { width: 64 },
+  backText: { fontSize: typography.sizes.md, color: colors.primary },
 });

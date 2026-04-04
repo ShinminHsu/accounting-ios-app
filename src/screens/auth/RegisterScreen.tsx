@@ -42,7 +42,7 @@ export function RegisterScreen({ onNavigateToLogin }: Props) {
     if (error) {
       Alert.alert('註冊失敗', error.message);
     } else {
-      Alert.alert('確認信已寄出', '請檢查你的電子郵件以完成註冊', [
+      Alert.alert('註冊成功', '帳號已建立，請登入', [
         { text: '確定', onPress: onNavigateToLogin },
       ]);
     }

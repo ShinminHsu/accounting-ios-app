@@ -11,6 +11,11 @@ import { fetchCategories, CategoryWithChildren } from '../../lib/categories';
 import { fetchAccounts, AccountWithBalance } from '../../lib/accounts';
 import { fetchContacts } from '../../lib/contacts';
 import { fetchActiveProjects, ProjectWithBudgets } from '../../lib/projects';
+import {
+  fetchCreditCardByAccountId, calculateRewardPreview, accumulateTransactionReward,
+  RewardPreview,
+} from '../../lib/rewards';
+import { getActiveFriendship, writeSharedTransaction } from '../../lib/friends';
 import { Contact, PayerType } from '../../types/database';
 import { colors, typography, spacing, radius } from '../../theme';
 
@@ -44,6 +49,7 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
   const [projects, setProjects] = useState<ProjectWithBudgets[]>([]);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [rewardPreview, setRewardPreview] = useState<RewardPreview | null>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -64,11 +70,28 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
     })();
   }, [visible]);
 
+  // Reward preview for credit card accounts
+  useEffect(() => {
+    if (isIncome || !selectedAccountId || !selectedCategoryId) {
+      setRewardPreview(null); return;
+    }
+    const parsed = parseFloat(amount);
+    if (!parsed || parsed <= 0) { setRewardPreview(null); return; }
+    (async () => {
+      const cc = await fetchCreditCardByAccountId(selectedAccountId);
+      if (!cc) { setRewardPreview(null); return; }
+      const yearMonth = new Date().toISOString().slice(0, 7);
+      const preview = await calculateRewardPreview(parsed, selectedCategoryId, notes, cc.id, yearMonth);
+      setRewardPreview(preview);
+    })();
+  }, [amount, selectedCategoryId, selectedAccountId, notes, isIncome]);
+
   function reset() {
     setAmount(''); setDate(new Date()); setIsIncome(false);
     setPayerType('self'); setSelectedCategoryId(null);
     setSelectedAccountId(null); setSelectedContactId(null);
     setSelectedProjectId(null); setNotes(''); setExpandedCategory(null);
+    setRewardPreview(null);
   }
 
   async function handleSave() {
@@ -86,7 +109,7 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setSaving(false); return; }
 
-    const { error } = await createTransaction(session.user.id, {
+    const { data: savedTxn, error } = await createTransaction(session.user.id, {
       amount: parsed,
       date: date.toISOString().slice(0, 10),
       categoryId: selectedCategoryId,
@@ -99,7 +122,41 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
     });
 
     setSaving(false);
-    if (error) { Alert.alert('失敗', error); return; }
+    if (error || !savedTxn) { Alert.alert('失敗', error ?? '儲存失敗'); return; }
+
+    // Accumulate credit card reward if applicable
+    if (rewardPreview?.ruleId && selectedAccountId && !isIncome) {
+      const cc = await fetchCreditCardByAccountId(selectedAccountId);
+      if (cc) {
+        const yearMonth = date.toISOString().slice(0, 7);
+        await accumulateTransactionReward(
+          session.user.id, rewardPreview.ruleId, rewardPreview.earnedAmount,
+          yearMonth, cc.id, rewardPreview.rewardType,
+        );
+      }
+    }
+
+    // Write shared transaction if paid_for_other and contact is an active friend
+    if (payerType === 'paid_for_other' && selectedContactId) {
+      const friendship = await getActiveFriendship(session.user.id, selectedContactId);
+      if (friendship) {
+        const catName = categories.find((c) => {
+          if (c.id === selectedCategoryId) return true;
+          return c.children.some((ch) => ch.id === selectedCategoryId);
+        })?.name ?? null;
+        await writeSharedTransaction({
+          payerId: session.user.id,
+          payeeId: friendship.friendUserId,
+          amount: parsed,
+          currency: accounts.find((a) => a.id === selectedAccountId)?.currency ?? 'TWD',
+          date: date.toISOString().slice(0, 10),
+          categoryName: catName,
+          notes,
+          sourceTransactionId: savedTxn.id,
+        });
+      }
+    }
+
     reset(); onSaved();
   }
 
@@ -296,6 +353,25 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
               multiline
             />
           </View>
+
+          {/* Reward preview */}
+          {rewardPreview && !isIncome && (
+            <View style={styles.rewardBanner}>
+              {rewardPreview.thresholdNotMet ? (
+                <Text style={styles.rewardText}>⚠ 未達最低消費門檻，無回饋</Text>
+              ) : rewardPreview.capReached ? (
+                <Text style={styles.rewardText}>🔔 本月回饋上限已達</Text>
+              ) : (
+                <Text style={styles.rewardText}>
+                  🎁 回饋：{rewardPreview.rewardType === 'cashback_offset'
+                    ? `NT$ ${rewardPreview.earnedAmount.toFixed(1)} 現金回饋`
+                    : rewardPreview.rewardType === 'points'
+                    ? `${rewardPreview.earnedAmount.toFixed(0)} 點（≈ NT$ ${rewardPreview.twdEquiv?.toFixed(0)}）`
+                    : `NT$ ${rewardPreview.earnedAmount.toFixed(1)} 入帳回饋`}
+                </Text>
+              )}
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -336,4 +412,6 @@ const styles = StyleSheet.create({
   catNameSelected: { color: colors.primary, fontWeight: typography.weights.semibold },
   catArrow: { fontSize: typography.sizes.xs, color: colors.textSecondary },
   notesInput: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, padding: spacing.sm, fontSize: typography.sizes.md, color: colors.text, backgroundColor: colors.surface, minHeight: 80, textAlignVertical: 'top' },
+  rewardBanner: { backgroundColor: colors.primaryLight + '20', borderRadius: radius.sm, padding: spacing.sm, marginTop: spacing.xs },
+  rewardText: { fontSize: typography.sizes.sm, color: colors.primary },
 });
