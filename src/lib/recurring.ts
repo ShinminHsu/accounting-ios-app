@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDb, generateUUID } from './db';
 import { RecurringTemplate, RecurrenceFrequency, RecurrenceSubtype } from '../types/database';
 import { createTransaction } from './transactions';
 
@@ -74,7 +74,7 @@ export async function createRecurringTemplate(
      (id, user_id, amount, category_id, account_id, project_id, notes, frequency, subtype, contact_id, start_date, end_date, status, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
     [
-      crypto.randomUUID(), userId, input.amount,
+      generateUUID(), userId, input.amount,
       input.categoryId ?? null, input.accountId ?? null, input.projectId ?? null,
       input.notes || null, input.frequency, input.subtype, input.contactId ?? null,
       input.startDate, input.endDate ?? null, now, now,

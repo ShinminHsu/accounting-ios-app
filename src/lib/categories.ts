@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDb, generateUUID } from './db';
 import { Category } from '../types/database';
 
 export type CategoryWithChildren = Category & { children: Category[] };
@@ -46,7 +46,7 @@ export async function createCategory(
     return { data: null, error: '同層級已有相同名稱的分類' };
   }
 
-  const id = crypto.randomUUID();
+  const id = generateUUID();
   const now = new Date().toISOString();
   await db.runAsync(
     'INSERT INTO categories (id, user_id, name, emoji, parent_id, is_default, sort_order, created_at) VALUES (?, ?, ?, ?, ?, 0, 0, ?)',

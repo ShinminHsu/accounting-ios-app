@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDb, generateUUID } from './db';
 import { CreditCardRewardRule, RewardType } from '../types/database';
 import { createTransaction } from './transactions';
 
@@ -85,7 +85,7 @@ export async function createRewardRule(
       monthly_cap, min_spend_threshold, deposit_account_id, points_conversion_rate, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      crypto.randomUUID(), creditCardId, userId, input.ruleType,
+      generateUUID(), creditCardId, userId, input.ruleType,
       input.categoryId ?? null, input.merchantName ?? null, input.rewardRate, input.rewardType,
       input.monthlyCap ?? null, input.minSpendThreshold ?? null,
       input.depositAccountId ?? null, input.pointsConversionRate ?? null, now, now,
@@ -213,7 +213,7 @@ export async function accumulateTransactionReward(
     } else {
       await db.runAsync(
         'INSERT INTO reward_accumulations (id, user_id, rule_id, year_month, earned_amount, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [crypto.randomUUID(), userId, ruleId, yearMonth, earnedAmount, now]
+        [generateUUID(), userId, ruleId, yearMonth, earnedAmount, now]
       );
     }
   } else if (rewardType === 'account_deposit') {
@@ -229,7 +229,7 @@ export async function accumulateTransactionReward(
     } else {
       await db.runAsync(
         'INSERT INTO pending_reward_deposits (id, user_id, credit_card_id, amount, updated_at) VALUES (?, ?, ?, ?, ?)',
-        [crypto.randomUUID(), userId, creditCardId, earnedAmount, now]
+        [generateUUID(), userId, creditCardId, earnedAmount, now]
       );
     }
   }

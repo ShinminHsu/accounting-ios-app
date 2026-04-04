@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDb, generateUUID } from './db';
 import { Account, AccountType } from '../types/database';
 
 // ─── Balance calculation ───────────────────────────────────────────────────
@@ -70,7 +70,7 @@ export async function upsertExchangeRate(
     `INSERT INTO exchange_rates (id, user_id, currency, rate_to_twd, updated_at)
      VALUES (?, ?, ?, ?, ?)
      ON CONFLICT(user_id, currency) DO UPDATE SET rate_to_twd = excluded.rate_to_twd, updated_at = excluded.updated_at`,
-    [crypto.randomUUID(), userId, currency, rateTotwd, now]
+    [generateUUID(), userId, currency, rateTotwd, now]
   );
   return { error: null };
 }
@@ -91,7 +91,7 @@ export async function createAccount(
   initialBalance: number
 ): Promise<{ data: Account | null; error: string | null }> {
   const db = await getDb();
-  const id = crypto.randomUUID();
+  const id = generateUUID();
   const now = new Date().toISOString();
   await db.runAsync(
     'INSERT INTO accounts (id, user_id, name, type, currency, initial_balance, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -120,7 +120,7 @@ export async function createCreditCardSettings(
   const now = new Date().toISOString();
   await db.runAsync(
     'INSERT INTO credit_cards (id, account_id, user_id, statement_closing_day, payment_due_day, auto_debit_account_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [crypto.randomUUID(), accountId, userId, statementClosingDay, paymentDueDay, autoDebitAccountId ?? null, now, now]
+    [generateUUID(), accountId, userId, statementClosingDay, paymentDueDay, autoDebitAccountId ?? null, now, now]
   );
   return { error: null };
 }

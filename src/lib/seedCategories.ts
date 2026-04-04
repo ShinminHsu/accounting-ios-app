@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDb, generateUUID } from './db';
 
 const DEFAULT_CATEGORIES: { name: string; emoji: string; children: { name: string; emoji: string }[] }[] = [
   {
@@ -69,7 +69,7 @@ export async function seedDefaultCategories(userId: string): Promise<void> {
   const now = new Date().toISOString();
   let sortOrder = 0;
   for (const parent of DEFAULT_CATEGORIES) {
-    const parentId = crypto.randomUUID();
+    const parentId = generateUUID();
     await db.runAsync(
       'INSERT INTO categories (id, user_id, name, emoji, parent_id, is_default, sort_order, created_at) VALUES (?, ?, ?, ?, NULL, 1, ?, ?)',
       [parentId, userId, parent.name, parent.emoji, sortOrder++, now]
@@ -78,7 +78,7 @@ export async function seedDefaultCategories(userId: string): Promise<void> {
       const child = parent.children[i];
       await db.runAsync(
         'INSERT INTO categories (id, user_id, name, emoji, parent_id, is_default, sort_order, created_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?)',
-        [crypto.randomUUID(), userId, child.name, child.emoji, parentId, i, now]
+        [generateUUID(), userId, child.name, child.emoji, parentId, i, now]
       );
     }
   }

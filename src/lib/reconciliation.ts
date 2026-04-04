@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDb, generateUUID } from './db';
 import { BillStatus, CreditCardBill, PendingDebit } from '../types/database';
 import { createTransaction } from './transactions';
 import * as FileSystem from 'expo-file-system';
@@ -68,7 +68,7 @@ export async function fetchOrCreateCurrentBill(
   );
   if (existing) return rowToBill(existing);
 
-  const id = crypto.randomUUID();
+  const id = generateUUID();
   const now = new Date().toISOString();
   await db.runAsync(
     `INSERT INTO credit_card_bills
@@ -216,7 +216,7 @@ export async function saveBillLineItems(
        (id, bill_id, user_id, date, merchant, amount, matched_transaction_id, is_checked, date_offset_days, is_manually_added, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
       [
-        crypto.randomUUID(), billId, userId, m.lineItem.date, m.lineItem.merchant,
+        generateUUID(), billId, userId, m.lineItem.date, m.lineItem.merchant,
         m.lineItem.amount, m.matchedTransactionId ?? null,
         m.isChecked ? 1 : 0, m.dateOffsetDays, now,
       ]
@@ -251,7 +251,7 @@ export async function confirmReconciliation(
     await db.runAsync(
       `INSERT INTO pending_debits (id, credit_card_id, bill_id, user_id, amount, due_date, source_account_id, status, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
-      [crypto.randomUUID(), creditCardId, billId, userId, netAmount, dueDateStr, sourceAccountId, now]
+      [generateUUID(), creditCardId, billId, userId, netAmount, dueDateStr, sourceAccountId, now]
     );
   }
   return { error: null };

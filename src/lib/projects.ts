@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDb, generateUUID } from './db';
 import { Project, ProjectType, ProjectInterval, ProjectStatus } from '../types/database';
 
 export type CategoryBudget = {
@@ -118,7 +118,7 @@ export async function createProject(
   }
 ): Promise<{ data: Project | null; error: string | null }> {
   const db = await getDb();
-  const id = crypto.randomUUID();
+  const id = generateUUID();
   const now = new Date().toISOString();
 
   await db.runAsync(
@@ -129,7 +129,7 @@ export async function createProject(
   for (const cb of input.categoryBudgets) {
     await db.runAsync(
       'INSERT INTO project_category_budgets (id, project_id, category_id, budget_amount, created_at) VALUES (?, ?, ?, ?, ?)',
-      [crypto.randomUUID(), id, cb.category_id, cb.budget_amount, now]
+      [generateUUID(), id, cb.category_id, cb.budget_amount, now]
     );
   }
 

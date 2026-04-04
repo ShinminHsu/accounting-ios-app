@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDb, generateUUID } from './db';
 import { Transaction, DebtType, PayerType } from '../types/database';
 
 export type TransactionInput = {
@@ -37,7 +37,7 @@ export async function createTransaction(
   input: TransactionInput
 ): Promise<{ data: Transaction | null; error: string | null }> {
   const db = await getDb();
-  const id = crypto.randomUUID();
+  const id = generateUUID();
   const now = new Date().toISOString();
   const accountId = input.payerType === 'paid_by_other' ? null : input.accountId;
 
@@ -61,7 +61,7 @@ export async function createTransaction(
       `INSERT INTO debt_records
        (id, user_id, transaction_id, contact_id, type, original_amount, repaid_amount, currency, status, created_at)
        VALUES (?, ?, ?, ?, ?, ?, 0, 'TWD', 'outstanding', ?)`,
-      [crypto.randomUUID(), userId, id, input.contactId, debtType, input.amount, now]
+      [generateUUID(), userId, id, input.contactId, debtType, input.amount, now]
     );
   }
 

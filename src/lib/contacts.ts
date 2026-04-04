@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDb, generateUUID } from './db';
 import { Contact } from '../types/database';
 
 function rowToContact(row: any): Contact {
@@ -25,7 +25,7 @@ export async function createContact(
   name: string
 ): Promise<{ data: Contact | null; error: string | null }> {
   const db = await getDb();
-  const id = crypto.randomUUID();
+  const id = generateUUID();
   const now = new Date().toISOString();
   await db.runAsync(
     'INSERT INTO contacts (id, user_id, name, linked_user_id, created_at) VALUES (?, ?, ?, NULL, ?)',
