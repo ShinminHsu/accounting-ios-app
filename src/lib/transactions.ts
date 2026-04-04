@@ -4,6 +4,7 @@ import { Transaction, DebtType, PayerType } from '../types/database';
 export type TransactionInput = {
   amount: number;
   date: string; // YYYY-MM-DD
+  name: string | null;
   categoryId: string | null;
   accountId: string | null;
   projectId: string | null;
@@ -19,6 +20,7 @@ function rowToTransaction(row: any): Transaction {
     user_id: row.user_id,
     amount: row.amount,
     date: row.date,
+    name: row.name ?? null,
     category_id: row.category_id ?? null,
     account_id: row.account_id ?? null,
     project_id: row.project_id ?? null,
@@ -43,10 +45,11 @@ export async function createTransaction(
 
   await db.runAsync(
     `INSERT INTO transactions
-     (id, user_id, amount, date, category_id, account_id, project_id, notes, payer_type, contact_id, is_income, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, user_id, amount, date, name, category_id, account_id, project_id, notes, payer_type, contact_id, is_income, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id, userId, input.amount, input.date,
+      input.name ?? null,
       input.categoryId ?? null, accountId ?? null, input.projectId ?? null,
       input.notes || null, input.payerType, input.contactId ?? null,
       input.isIncome ? 1 : 0, now, now,

@@ -336,12 +336,12 @@ function TransactionRow({
       </View>
       <View style={rowStyles.info}>
         <Text style={rowStyles.category} numberOfLines={1}>
-          {txn.category_name ?? '未分類'}
+          {txn.name ?? txn.category_name ?? '未分類'}
           {payerTag ? <Text style={rowStyles.payerTag}> · {payerTag}</Text> : null}
         </Text>
-        {(txn.notes || txn.account_name) ? (
+        {(txn.name || txn.notes || txn.account_name) ? (
           <Text style={rowStyles.sub} numberOfLines={1}>
-            {[txn.account_name, txn.notes].filter(Boolean).join(' · ')}
+            {[txn.name ? txn.category_name : null, txn.account_name, txn.notes].filter(Boolean).join(' · ')}
           </Text>
         ) : null}
         {showDate && <Text style={rowStyles.date}>{txn.date}</Text>}

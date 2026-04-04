@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -120,16 +120,6 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>首頁</Text>
-        <TouchableOpacity
-          onPress={load}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <RefreshCw size={20} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
-
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.primary} size="large" />
@@ -209,13 +199,6 @@ export function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderBottomWidth: 1, borderBottomColor: colors.borderLight,
-    backgroundColor: colors.surface,
-  },
-  headerTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: colors.text },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: spacing.md, gap: spacing.md },
   netWorthCard: {
