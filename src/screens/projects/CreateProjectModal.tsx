@@ -65,21 +65,26 @@ export function CreateProjectModal({ visible, onClose, onCreated }: Props) {
       .map(([category_id, v]) => ({ category_id, budget_amount: parseFloat(v) }));
 
     setSaving(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setSaving(false); return; }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    const { error } = await createProject(session.user.id, {
-      name: name.trim(),
-      type,
-      interval: type === 'periodic' ? interval : null,
-      start_date: type === 'one_time' ? startDate : null,
-      end_date: type === 'one_time' ? endDate : null,
-      categoryBudgets,
-    });
+      const { error } = await createProject(session.user.id, {
+        name: name.trim(),
+        type,
+        interval: type === 'periodic' ? interval : null,
+        start_date: type === 'one_time' ? startDate : null,
+        end_date: type === 'one_time' ? endDate : null,
+        categoryBudgets,
+      });
 
-    setSaving(false);
-    if (error) { Alert.alert('失敗', error); return; }
-    reset(); onCreated();
+      if (error) { Alert.alert('失敗', error); return; }
+      reset(); onCreated();
+    } catch (e: any) {
+      Alert.alert('錯誤', e?.message ?? '操作失敗，請重試');
+    } finally {
+      setSaving(false);
+    }
   }
 
   // Flatten categories for display (parent + children)

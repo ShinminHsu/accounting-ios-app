@@ -29,12 +29,11 @@ export default function App() {
 
   useEffect(() => {
     if (!dbReady) return;
-    const { data: listener } = onAuthStateChange((_event, newSession) => {
+    const { data: listener } = onAuthStateChange(async (_event, newSession) => {
       setSession(newSession);
-      setLoading(false);
       if (newSession) {
         requestPushPermission();
-        seedDefaultCategories(newSession.user.id);
+        await seedDefaultCategories(newSession.user.id).catch(() => {});
         checkProjectCompletions(newSession.user.id);
         executePendingDebits(newSession.user.id);
         generateDueInstances(newSession.user.id).then((records) => {
@@ -50,6 +49,7 @@ export default function App() {
           handleIncomingSharedTransaction(newSession.user.id, sharedTxn);
         });
       }
+      setLoading(false);
     });
 
     return () => {

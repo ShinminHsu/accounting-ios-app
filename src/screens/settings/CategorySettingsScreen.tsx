@@ -57,20 +57,25 @@ export function CategorySettingsScreen() {
       return;
     }
     setSaving(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    if (editing) {
-      const { error } = await updateCategory(editing.id, name, emoji || null);
-      if (error) Alert.alert('失敗', error);
-    } else {
-      const { error } = await createCategory(session.user.id, name, emoji || null, parentId);
-      if (error) Alert.alert('失敗', error);
+      if (editing) {
+        const { error } = await updateCategory(editing.id, name, emoji || null);
+        if (error) { Alert.alert('失敗', error); return; }
+      } else {
+        const { error } = await createCategory(session.user.id, name, emoji || null, parentId);
+        if (error) { Alert.alert('失敗', error); return; }
+      }
+
+      setModalVisible(false);
+      load();
+    } catch (e: any) {
+      Alert.alert('錯誤', e?.message ?? '操作失敗，請重試');
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
-    setModalVisible(false);
-    load();
   }
 
   async function handleDelete(cat: Category) {
