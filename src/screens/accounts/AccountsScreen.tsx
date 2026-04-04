@@ -11,6 +11,7 @@ import {
 } from '../../lib/accounts';
 import { AccountType } from '../../types/database';
 import { colors, typography, spacing, radius } from '../../theme';
+import { AlertTriangle } from 'lucide-react-native';
 import { CreateAccountModal } from './CreateAccountModal';
 import { ExchangeRateModal } from './ExchangeRateModal';
 import { CreditCardDetailScreen } from '../creditcards/CreditCardDetailScreen';
@@ -99,7 +100,10 @@ export function AccountsScreen() {
           ) : (
             <View>
               <Text style={styles.netWorthValue}>—</Text>
-              <Text style={styles.rateWarning}>⚠ 部分外幣匯率未設定</Text>
+              <View style={styles.rateWarningRow}>
+                <AlertTriangle size={13} color={colors.warning} />
+                <Text style={styles.rateWarning}> 部分外幣匯率未設定</Text>
+              </View>
             </View>
           )}
           <TouchableOpacity onPress={() => setShowRates(true)} style={styles.rateBtn}>
@@ -213,7 +217,7 @@ function AccountRow({
         {account.currency !== 'TWD' && (
           twd !== null
             ? <Text style={styles.twdEquiv}>≈ NT$ {twd.toLocaleString('zh-TW', { maximumFractionDigits: 0 })}</Text>
-            : <Text style={styles.rateWarning}>⚠ 未設匯率</Text>
+            : <View style={styles.rateWarningRow}><AlertTriangle size={12} color={colors.warning} /><Text style={styles.rateWarning}> 未設匯率</Text></View>
         )}
       </View>
       <TouchableOpacity onPress={onDelete} style={styles.deleteBtn}>
@@ -233,7 +237,8 @@ const styles = StyleSheet.create({
   },
   netWorthLabel: { color: 'rgba(255,255,255,0.8)', fontSize: typography.sizes.sm, marginBottom: spacing.xs },
   netWorthValue: { color: colors.white, fontSize: typography.sizes.xxl, fontWeight: typography.weights.bold },
-  rateWarning: { color: 'rgba(255,255,255,0.7)', fontSize: typography.sizes.xs, textAlign: 'center' },
+  rateWarningRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  rateWarning: { color: 'rgba(255,255,255,0.7)', fontSize: typography.sizes.xs },
   rateBtn: { marginTop: spacing.sm, paddingVertical: spacing.xs, paddingHorizontal: spacing.md, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: radius.full },
   rateBtnText: { color: colors.white, fontSize: typography.sizes.xs },
   sectionHeader: { fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textSecondary, marginTop: spacing.md, marginBottom: spacing.xs, textTransform: 'uppercase', letterSpacing: 0.5 },

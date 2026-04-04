@@ -4,10 +4,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { CreditCard, Handshake, RefreshCw, CheckCircle } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import { fetchAccounts, fetchExchangeRates, convertToTWD } from '../lib/accounts';
 import { fetchSpendingSummary, computePeriodDates } from '../lib/reports';
-import { colors, typography, spacing, radius } from '../theme';
+import { colors, typography, spacing, radius, shadows } from '../theme';
 
 type HomeData = {
   netWorth: number | null;
@@ -120,8 +122,11 @@ export function HomeScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>首頁</Text>
-        <TouchableOpacity onPress={load}>
-          <Text style={styles.refreshBtn}>↻</Text>
+        <TouchableOpacity
+          onPress={load}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <RefreshCw size={20} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -132,12 +137,17 @@ export function HomeScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           {/* Net worth */}
-          <View style={styles.netWorthCard}>
+          <LinearGradient
+            colors={[colors.primary, colors.primaryDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.netWorthCard}
+          >
             <Text style={styles.netWorthLabel}>總資產淨值</Text>
             <Text style={styles.netWorthAmount}>
               {data?.netWorth == null ? '—（缺少匯率）' : fmtCurrency(data.netWorth)}
             </Text>
-          </View>
+          </LinearGradient>
 
           {/* Monthly spending */}
           <View style={styles.sectionCard}>
@@ -163,21 +173,21 @@ export function HomeScreen() {
               <Text style={styles.cardTitle}>待處理項目</Text>
               {data!.unreconciledBillCount > 0 && (
                 <View style={styles.pendingRow}>
-                  <Text style={styles.pendingIcon}>💳</Text>
+                  <CreditCard size={20} color={colors.textSecondary} style={styles.pendingIconView} />
                   <Text style={styles.pendingText}>{data!.unreconciledBillCount} 張帳單待對帳</Text>
                   <View style={styles.badge}><Text style={styles.badgeText}>{data!.unreconciledBillCount}</Text></View>
                 </View>
               )}
               {data!.outstandingDebtCount > 0 && (
                 <View style={styles.pendingRow}>
-                  <Text style={styles.pendingIcon}>🤝</Text>
+                  <Handshake size={20} color={colors.textSecondary} style={styles.pendingIconView} />
                   <Text style={styles.pendingText}>{data!.outstandingDebtCount} 筆未結清帳款</Text>
                   <View style={styles.badge}><Text style={styles.badgeText}>{data!.outstandingDebtCount}</Text></View>
                 </View>
               )}
               {data!.overdueTemplateCount > 0 && (
                 <View style={styles.pendingRow}>
-                  <Text style={styles.pendingIcon}>🔁</Text>
+                  <RefreshCw size={20} color={colors.textSecondary} style={styles.pendingIconView} />
                   <Text style={styles.pendingText}>{data!.overdueTemplateCount} 筆定期記錄逾期</Text>
                   <View style={styles.badge}><Text style={styles.badgeText}>{data!.overdueTemplateCount}</Text></View>
                 </View>
@@ -187,7 +197,7 @@ export function HomeScreen() {
 
           {pendingTotal === 0 && data && (
             <View style={styles.allClearCard}>
-              <Text style={styles.allClearIcon}>✓</Text>
+              <CheckCircle size={20} color={colors.income} />
               <Text style={styles.allClearText}>無待處理項目</Text>
             </View>
           )}
@@ -206,32 +216,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   headerTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: colors.text },
-  refreshBtn: { fontSize: typography.sizes.xl, color: colors.primary },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: spacing.md, gap: spacing.md },
   netWorthCard: {
-    backgroundColor: colors.primary, borderRadius: radius.lg,
-    padding: spacing.lg, alignItems: 'center',
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    alignItems: 'center',
   },
   netWorthLabel: { fontSize: typography.sizes.sm, color: 'rgba(255,255,255,0.8)', fontWeight: typography.weights.medium },
   netWorthAmount: { fontSize: typography.sizes.xxxl, fontWeight: typography.weights.bold, color: colors.white, marginTop: spacing.xs },
   sectionCard: {
-    backgroundColor: colors.surface, borderRadius: radius.md,
-    padding: spacing.md, borderWidth: 1, borderColor: colors.borderLight,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    ...shadows.sm,
   },
   cardTitle: {
     fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold,
     color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: spacing.sm,
   },
   spendRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
-  spendAmount: { fontSize: typography.sizes.xxl, fontWeight: typography.weights.bold, color: colors.expense },
+  spendAmount: { fontSize: typography.sizes.xxl, fontWeight: typography.weights.bold, color: colors.text },
   spendDiff: { fontSize: typography.sizes.sm, fontWeight: typography.weights.medium },
   spendCompareText: { fontSize: typography.sizes.sm, color: colors.textSecondary, marginTop: spacing.xs },
   pendingRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.borderLight,
   },
-  pendingIcon: { fontSize: typography.sizes.lg, marginRight: spacing.sm, width: 28 },
+  pendingIconView: { marginRight: spacing.sm },
   pendingText: { flex: 1, fontSize: typography.sizes.md, color: colors.text },
   badge: {
     backgroundColor: colors.expense, borderRadius: radius.full,
@@ -239,10 +251,14 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: colors.white, fontSize: typography.sizes.xs, fontWeight: typography.weights.bold },
   allClearCard: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.lg,
-    alignItems: 'center', borderWidth: 1, borderColor: colors.borderLight,
-    flexDirection: 'row', justifyContent: 'center', gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    ...shadows.sm,
   },
-  allClearIcon: { fontSize: typography.sizes.xl, color: colors.income },
   allClearText: { fontSize: typography.sizes.md, color: colors.textSecondary },
 });

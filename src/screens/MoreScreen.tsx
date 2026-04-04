@@ -3,6 +3,10 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  ChevronLeft, ChevronRight,
+  Landmark, Handshake, Users, BarChart2, Tag, Repeat,
+} from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../theme';
 import { AccountsScreen } from './accounts/AccountsScreen';
 import { CategorySettingsScreen } from './settings/CategorySettingsScreen';
@@ -25,8 +29,15 @@ function ScreenModal({
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={shell.container} edges={['top', 'bottom']}>
         <View style={shell.header}>
-          <TouchableOpacity onPress={onClose} style={shell.backBtn}>
-            <Text style={shell.backText}>‹ 返回</Text>
+          <TouchableOpacity
+            onPress={onClose}
+            style={shell.backBtn}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <View style={shell.backInner}>
+              <ChevronLeft size={18} color={colors.primary} />
+              <Text style={shell.backText}>返回</Text>
+            </View>
           </TouchableOpacity>
           <Text style={shell.title}>{title}</Text>
           <View style={shell.backBtn} />
@@ -55,6 +66,7 @@ const shell = StyleSheet.create({
     color: colors.text,
   },
   backBtn: { width: 64 },
+  backInner: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   backText: { fontSize: typography.sizes.md, color: colors.primary },
 });
 
@@ -68,7 +80,7 @@ function MenuItem({
   label, icon, onPress, disabled,
 }: {
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   onPress?: () => void;
   disabled?: boolean;
 }) {
@@ -79,9 +91,9 @@ function MenuItem({
       disabled={disabled}
       activeOpacity={0.6}
     >
-      <Text style={styles.menuIcon}>{icon}</Text>
+      <View style={styles.menuIcon}>{icon}</View>
       <Text style={[styles.menuLabel, disabled && styles.menuLabelDisabled]}>{label}</Text>
-      {!disabled && <Text style={styles.chevron}>›</Text>}
+      {!disabled && <ChevronRight size={18} color={colors.textSecondary} />}
     </TouchableOpacity>
   );
 }
@@ -105,16 +117,40 @@ export function MoreScreen() {
 
         <ScrollView contentContainerStyle={styles.scroll}>
           <SectionHeader title="財務" />
-          <MenuItem label="帳戶管理" icon="🏦" onPress={() => setShowAccounts(true)} />
-          <MenuItem label="負債追蹤" icon="🤝" onPress={() => setShowDebt(true)} />
-          <MenuItem label="好友" icon="👥" onPress={() => setShowFriends(true)} />
+          <MenuItem
+            label="帳戶管理"
+            icon={<Landmark size={20} color={colors.primary} />}
+            onPress={() => setShowAccounts(true)}
+          />
+          <MenuItem
+            label="負債追蹤"
+            icon={<Handshake size={20} color={colors.primary} />}
+            onPress={() => setShowDebt(true)}
+          />
+          <MenuItem
+            label="好友"
+            icon={<Users size={20} color={colors.primary} />}
+            onPress={() => setShowFriends(true)}
+          />
 
           <SectionHeader title="分析" />
-          <MenuItem label="報表" icon="📊" onPress={() => setShowReports(true)} />
+          <MenuItem
+            label="報表"
+            icon={<BarChart2 size={20} color={colors.primary} />}
+            onPress={() => setShowReports(true)}
+          />
 
           <SectionHeader title="設定" />
-          <MenuItem label="分類管理" icon="🏷️" onPress={() => setShowCategories(true)} />
-          <MenuItem label="定期記錄" icon="🔁" onPress={() => setShowRecurring(true)} />
+          <MenuItem
+            label="分類管理"
+            icon={<Tag size={20} color={colors.primary} />}
+            onPress={() => setShowCategories(true)}
+          />
+          <MenuItem
+            label="定期記錄"
+            icon={<Repeat size={20} color={colors.primary} />}
+            onPress={() => setShowRecurring(true)}
+          />
         </ScrollView>
       </SafeAreaView>
 
@@ -180,8 +216,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.borderLight,
   },
   menuItemDisabled: { opacity: 0.4 },
-  menuIcon: { fontSize: typography.sizes.lg, marginRight: spacing.sm, width: 28 },
+  menuIcon: { marginRight: spacing.sm, width: 28, alignItems: 'center' },
   menuLabel: { flex: 1, fontSize: typography.sizes.md, color: colors.text },
   menuLabelDisabled: { color: colors.textSecondary },
-  chevron: { fontSize: typography.sizes.lg, color: colors.textSecondary },
 });
