@@ -1,6 +1,4 @@
-import { supabase } from './supabase';
-
-// ── Period utilities ─────────────────────────────────────────────────────────
+import { getDb } from './db';
 
 export type PeriodPreset =
   | 'this_week' | 'this_month' | 'this_quarter' | 'this_year'
@@ -18,7 +16,7 @@ export function computePeriodDates(preset: PeriodPreset): {
   let start: Date, end: Date, prevStart: Date, prevEnd: Date;
 
   if (preset === 'this_week') {
-    const dow = today.getDay(); // 0=Sun
+    const dow = today.getDay();
     start = new Date(today); start.setDate(today.getDate() - dow);
     end = new Date(today);
     const len = today.getTime() - start.getTime();
@@ -45,7 +43,7 @@ export function computePeriodDates(preset: PeriodPreset): {
     end = new Date(today.getFullYear(), today.getMonth(), 0);
     prevStart = new Date(today.getFullYear(), today.getMonth() - 2, 1);
     prevEnd = new Date(today.getFullYear(), today.getMonth() - 1, 0);
-  } else { // last_year
+  } else {
     start = new Date(today.getFullYear() - 1, 0, 1);
     end = new Date(today.getFullYear() - 1, 11, 31);
     prevStart = new Date(today.getFullYear() - 2, 0, 1);
@@ -58,9 +56,7 @@ export function computePeriodDates(preset: PeriodPreset): {
   };
 }
 
-export function computeCustomPrevPeriod(
-  start: string, end: string
-): { prevStart: string; prevEnd: string } {
+export function computeCustomPrevPeriod(start: string, end: string): { prevStart: string; prevEnd: string } {
   const s = new Date(start);
   const e = new Date(end);
   const len = e.getTime() - s.getTime();
@@ -68,8 +64,6 @@ export function computeCustomPrevPeriod(
   const prevStart = new Date(prevEnd.getTime() - len);
   return { prevStart: toDateStr(prevStart), prevEnd: toDateStr(prevEnd) };
 }
-
-// ── Spending summary ──────────────────────────────────────────────────────────
 
 export type CategorySpend = {
   categoryId: string;
@@ -92,49 +86,55 @@ export async function fetchSpendingSummary(
   prevStart: string,
   prevEnd: string
 ): Promise<SpendingSummary> {
+  const db = await getDb();
+
   const [current, prev] = await Promise.all([
-    supabase
-      .from('transactions')
-      .select('amount, category_id, categories(name, emoji, parent_id)')
-      .eq('user_id', userId)
-      .eq('is_income', false)
-      .neq('payer_type', 'paid_for_other')
-      .gte('date', start)
-      .lte('date', end),
-    supabase
-      .from('transactions')
-      .select('amount')
-      .eq('user_id', userId)
-      .eq('is_income', false)
-      .neq('payer_type', 'paid_for_other')
-      .gte('date', prevStart)
-      .lte('date', prevEnd),
+    db.getAllAsync<any>(
+      `SELECT t.amount, t.category_id, c.name as cat_name, c.emoji as cat_emoji, c.parent_id
+       FROM transactions t
+       LEFT JOIN categories c ON t.category_id = c.id
+       WHERE t.user_id = ? AND t.is_income = 0 AND t.payer_type != 'paid_for_other'
+         AND t.date >= ? AND t.date <= ?`,
+      [userId, start, end]
+    ),
+    db.getAllAsync<{ amount: number }>(
+      `SELECT amount FROM transactions
+       WHERE user_id = ? AND is_income = 0 AND payer_type != 'paid_for_other'
+         AND date >= ? AND date <= ?`,
+      [userId, prevStart, prevEnd]
+    ),
   ]);
 
-  const total = (current.data ?? []).reduce((s, t) => s + t.amount, 0);
-  const prevTotal = (prev.data ?? []).reduce((s, t) => s + t.amount, 0);
+  const total = current.reduce((s: number, t: any) => s + t.amount, 0);
+  const prevTotal = prev.reduce((s, t) => s + t.amount, 0);
 
-  // Group by parent category (or self if no parent)
-  const catMap: Record<string, { name: string; emoji: string | null; amount: number }> = {};
+  // Build parent-level spending map
+  const catMap: Record<string, { name: string; emoji: string | null; amount: number; isParent: boolean }> = {};
+  const subcatParentIds = new Set<string>();
 
-  for (const t of current.data ?? []) {
-    const cat = t.categories as any;
-    if (!cat) continue;
-    const isParent = !cat.parent_id;
-    const id = isParent ? t.category_id : cat.parent_id;
-    const name = isParent ? cat.name : cat.name; // will be overwritten by parent fetch
-    if (!catMap[id]) catMap[id] = { name: cat.parent_id ? '...' : cat.name, emoji: cat.emoji, amount: 0 };
-    catMap[id].amount += t.amount;
+  for (const t of current) {
+    if (!t.category_id) continue;
+    if (t.parent_id) {
+      // subcategory — accumulate under parent
+      if (!catMap[t.parent_id]) {
+        catMap[t.parent_id] = { name: '...', emoji: null, amount: 0, isParent: false };
+        subcatParentIds.add(t.parent_id);
+      }
+      catMap[t.parent_id].amount += t.amount;
+    } else {
+      if (!catMap[t.category_id]) catMap[t.category_id] = { name: t.cat_name ?? '', emoji: t.cat_emoji ?? null, amount: 0, isParent: true };
+      catMap[t.category_id].amount += t.amount;
+    }
   }
 
-  // Fetch parent names for subcategory-only hits
-  const parentIds = Object.keys(catMap).filter((id) => catMap[id].name === '...');
-  if (parentIds.length > 0) {
-    const { data: parents } = await supabase
-      .from('categories')
-      .select('id, name, emoji')
-      .in('id', parentIds);
-    for (const p of parents ?? []) {
+  // Resolve parent names for entries we only know by ID
+  if (subcatParentIds.size > 0) {
+    const ids = [...subcatParentIds];
+    const placeholders = ids.map(() => '?').join(',');
+    const parents = await db.getAllAsync<{ id: string; name: string; emoji: string | null }>(
+      `SELECT id, name, emoji FROM categories WHERE id IN (${placeholders})`, ids
+    );
+    for (const p of parents) {
       if (catMap[p.id]) { catMap[p.id].name = p.name; catMap[p.id].emoji = p.emoji; }
     }
   }
@@ -152,14 +152,9 @@ export async function fetchSpendingSummary(
   return { total, prevTotal, categories };
 }
 
-// ── Category drill-down ───────────────────────────────────────────────────────
-
 export type DrillDownResult = {
   subcategories: { id: string; name: string; emoji: string | null; amount: number }[];
-  transactions: {
-    id: string; date: string; amount: number; notes: string | null;
-    accountName: string | null; subcategoryName: string | null;
-  }[];
+  transactions: { id: string; date: string; amount: number; notes: string | null; accountName: string | null; subcategoryName: string | null }[];
 };
 
 export async function fetchCategoryDrillDown(
@@ -168,50 +163,39 @@ export async function fetchCategoryDrillDown(
   start: string,
   end: string
 ): Promise<DrillDownResult> {
-  const { data } = await supabase
-    .from('transactions')
-    .select(`
-      id, date, amount, notes,
-      categories(id, name, emoji, parent_id),
-      accounts(name)
-    `)
-    .eq('user_id', userId)
-    .eq('is_income', false)
-    .neq('payer_type', 'paid_for_other')
-    .gte('date', start)
-    .lte('date', end);
-
-  const filtered = (data ?? []).filter((t: any) => {
-    const cat = t.categories;
-    return cat && (cat.id === parentCategoryId || cat.parent_id === parentCategoryId);
-  });
+  const db = await getDb();
+  const rows = await db.getAllAsync<any>(
+    `SELECT t.id, t.date, t.amount, t.notes, t.category_id,
+            c.name as cat_name, c.emoji as cat_emoji, c.parent_id,
+            a.name as account_name
+     FROM transactions t
+     LEFT JOIN categories c ON t.category_id = c.id
+     LEFT JOIN accounts a ON t.account_id = a.id
+     WHERE t.user_id = ? AND t.is_income = 0 AND t.payer_type != 'paid_for_other'
+       AND t.date >= ? AND t.date <= ?
+       AND (t.category_id = ? OR c.parent_id = ?)`,
+    [userId, start, end, parentCategoryId, parentCategoryId]
+  );
 
   const subMap: Record<string, { name: string; emoji: string | null; amount: number }> = {};
-  for (const t of filtered) {
-    const cat = t.categories as any;
-    if (cat && cat.parent_id) {
-      if (!subMap[cat.id]) subMap[cat.id] = { name: cat.name, emoji: cat.emoji, amount: 0 };
-      subMap[cat.id].amount += t.amount;
+  for (const t of rows) {
+    if (t.parent_id) {
+      if (!subMap[t.category_id]) subMap[t.category_id] = { name: t.cat_name, emoji: t.cat_emoji, amount: 0 };
+      subMap[t.category_id].amount += t.amount;
     }
   }
 
   return {
     subcategories: Object.entries(subMap).map(([id, v]) => ({ id, ...v })).sort((a, b) => b.amount - a.amount),
-    transactions: filtered.map((t: any) => ({
-      id: t.id,
-      date: t.date,
-      amount: t.amount,
-      notes: t.notes,
-      accountName: t.accounts?.name ?? null,
-      subcategoryName: t.categories?.parent_id ? t.categories.name : null,
+    transactions: rows.map((t: any) => ({
+      id: t.id, date: t.date, amount: t.amount, notes: t.notes ?? null,
+      accountName: t.account_name ?? null,
+      subcategoryName: t.parent_id ? t.cat_name : null,
     })).sort((a: any, b: any) => b.date.localeCompare(a.date)),
   };
 }
 
-// ── Trend data ────────────────────────────────────────────────────────────────
-
 export type TrendBar = { label: string; amount: number };
-
 export type TrendData = {
   bars: TrendBar[];
   top5Categories: { name: string; emoji: string | null; amount: number }[];
@@ -219,78 +203,69 @@ export type TrendData = {
   useWeeklyBars: boolean;
 };
 
-export async function fetchTrendData(
-  userId: string,
-  start: string,
-  end: string
-): Promise<TrendData> {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  const daysDiff = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-  const useWeeklyBars = daysDiff <= 92; // ≤ 3 months
+export async function fetchTrendData(userId: string, start: string, end: string): Promise<TrendData> {
+  const db = await getDb();
+  const daysDiff = (new Date(end).getTime() - new Date(start).getTime()) / 86400000;
+  const useWeeklyBars = daysDiff <= 92;
 
-  const { data } = await supabase
-    .from('transactions')
-    .select('amount, date, is_income, payer_type, categories(name, emoji, parent_id)')
-    .eq('user_id', userId)
-    .gte('date', start)
-    .lte('date', end);
+  const rows = await db.getAllAsync<any>(
+    `SELECT t.amount, t.date, t.is_income, t.payer_type, t.category_id,
+            c.name as cat_name, c.emoji as cat_emoji, c.parent_id
+     FROM transactions t
+     LEFT JOIN categories c ON t.category_id = c.id
+     WHERE t.user_id = ? AND t.date >= ? AND t.date <= ?`,
+    [userId, start, end]
+  );
 
-  const txns = data ?? [];
-
-  // Spending bars
   const barMap: Record<string, number> = {};
-  for (const t of txns) {
-    if (t.is_income || t.payer_type === 'paid_for_other') continue;
-    let key: string;
-    const d = new Date(t.date);
-    if (useWeeklyBars) {
-      // Week start (Monday)
-      const dayOfWeek = d.getDay() || 7; // 1=Mon...7=Sun
-      const weekStart = new Date(d);
-      weekStart.setDate(d.getDate() - (dayOfWeek - 1));
-      key = toDateStr(weekStart);
-    } else {
-      key = t.date.slice(0, 7); // YYYY-MM
-    }
-    barMap[key] = (barMap[key] ?? 0) + t.amount;
-  }
-
-  const bars: TrendBar[] = Object.entries(barMap)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([k, amount]) => ({
-      label: useWeeklyBars ? k.slice(5) : k.slice(5), // MM-DD or MM
-      amount,
-    }));
-
-  // Top 5 categories
   const catMap: Record<string, { name: string; emoji: string | null; amount: number }> = {};
-  for (const t of txns) {
-    if (t.is_income || t.payer_type === 'paid_for_other') continue;
-    const cat = t.categories as any;
-    if (!cat) continue;
-    const id = cat.parent_id ?? (t as any).category_id ?? cat.id;
-    const name = cat.parent_id ? '' : cat.name;
-    if (!catMap[id]) catMap[id] = { name: name || cat.name, emoji: cat.emoji, amount: 0 };
-    else if (!catMap[id].name && name) catMap[id].name = name;
-    catMap[id].amount += t.amount;
-  }
-
-  const top5Categories = Object.values(catMap)
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 5);
-
-  // Net cash flow
   let income = 0, expenses = 0;
-  for (const t of txns) {
+
+  for (const t of rows) {
+    const isExpense = !t.is_income && t.payer_type !== 'paid_for_other';
     if (t.is_income) income += t.amount;
-    else if (t.payer_type !== 'paid_for_other') expenses += t.amount;
+    else if (isExpense) expenses += t.amount;
+
+    if (isExpense) {
+      const d = new Date(t.date);
+      let key: string;
+      if (useWeeklyBars) {
+        const dayOfWeek = d.getDay() || 7;
+        const ws = new Date(d);
+        ws.setDate(d.getDate() - (dayOfWeek - 1));
+        key = toDateStr(ws);
+      } else {
+        key = t.date.slice(0, 7);
+      }
+      barMap[key] = (barMap[key] ?? 0) + t.amount;
+
+      if (t.category_id) {
+        const catKey = t.parent_id ?? t.category_id;
+        if (!catMap[catKey]) catMap[catKey] = { name: t.parent_id ? '' : (t.cat_name ?? ''), emoji: t.cat_emoji ?? null, amount: 0 };
+        catMap[catKey].amount += t.amount;
+      }
+    }
   }
 
-  return { bars, top5Categories, netCashFlow: income - expenses, useWeeklyBars };
-}
+  // Resolve unnamed parent categories
+  const missingIds = Object.entries(catMap).filter(([, v]) => !v.name).map(([id]) => id);
+  if (missingIds.length > 0) {
+    const ph = missingIds.map(() => '?').join(',');
+    const parents = await db.getAllAsync<{ id: string; name: string; emoji: string | null }>(
+      `SELECT id, name, emoji FROM categories WHERE id IN (${ph})`, missingIds
+    );
+    for (const p of parents) {
+      if (catMap[p.id]) { catMap[p.id].name = p.name; catMap[p.id].emoji = p.emoji; }
+    }
+  }
 
-// ── Account balance history ───────────────────────────────────────────────────
+  return {
+    bars: Object.entries(barMap).sort(([a], [b]) => a.localeCompare(b)).map(([k, amount]) => ({ label: k.slice(5), amount })),
+    top5Categories: Object.values(catMap).sort((a, b) => b.amount - a.amount).slice(0, 5),
+    netCashFlow: income - expenses,
+    useWeeklyBars,
+  };
+}
 
 export type BalancePoint = { date: string; balance: number };
 
@@ -300,61 +275,43 @@ export async function fetchAccountBalanceHistory(
   rangeMonths: 1 | 3 | 6 | 12,
   ratesTWD: Record<string, number>
 ): Promise<BalancePoint[]> {
+  const db = await getDb();
   const endDate = new Date();
   const startDate = new Date();
   startDate.setMonth(startDate.getMonth() - rangeMonths);
-
   const start = toDateStr(startDate);
   const end = toDateStr(endDate);
 
-  // Get account initial balance
-  const { data: account } = await supabase
-    .from('accounts')
-    .select('initial_balance, currency')
-    .eq('id', accountId)
-    .single();
-
+  const account = await db.getFirstAsync<{ initial_balance: number; currency: string }>(
+    'SELECT initial_balance, currency FROM accounts WHERE id = ?',
+    [accountId]
+  );
   if (!account) return [];
 
-  // Get all transactions up to end date, ordered by date
-  const { data: txns } = await supabase
-    .from('transactions')
-    .select('amount, date, is_income, payer_type')
-    .eq('account_id', accountId)
-    .neq('payer_type', 'paid_by_other')
-    .lte('date', end)
-    .order('date');
+  const txns = await db.getAllAsync<{ amount: number; date: string; is_income: number; payer_type: string }>(
+    `SELECT amount, date, is_income, payer_type FROM transactions
+     WHERE account_id = ? AND payer_type != 'paid_by_other' AND date <= ?
+     ORDER BY date ASC`,
+    [accountId, end]
+  );
 
-  if (!txns) return [];
-
-  // Compute balance for each day in range by replaying transactions
-  const txnByDate: Record<string, number> = {};
   let runningBalance = account.initial_balance;
-
-  // Compute initial balance before the range start
+  const txnByDate: Record<string, number> = {};
   for (const t of txns) {
-    if (t.date < start) {
-      if (t.is_income) runningBalance += t.amount;
-      else runningBalance -= t.amount;
-    } else {
-      txnByDate[t.date] = (txnByDate[t.date] ?? 0) + (t.is_income ? t.amount : -t.amount);
-    }
+    const delta = t.is_income ? t.amount : -t.amount;
+    if (t.date < start) runningBalance += delta;
+    else txnByDate[t.date] = (txnByDate[t.date] ?? 0) + delta;
   }
 
-  // Build daily data points (sample weekly to avoid too many points)
   const points: BalancePoint[] = [];
   const cursor = new Date(startDate);
+  const daysDiff = (endDate.getTime() - startDate.getTime()) / 86400000;
+  const sampleInterval = daysDiff <= 31 ? 1 : 7;
+  let dayNum = 0;
 
   while (cursor <= endDate) {
     const dateStr = toDateStr(cursor);
-    const delta = txnByDate[dateStr] ?? 0;
-    runningBalance += delta;
-
-    // Sample every 7 days (or always for ≤1 month)
-    const daysDiff = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-    const sampleInterval = daysDiff <= 31 ? 1 : 7;
-
-    const dayNum = Math.floor((cursor.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    runningBalance += txnByDate[dateStr] ?? 0;
     if (dayNum % sampleInterval === 0 || dateStr === end) {
       let balance = runningBalance;
       if (account.currency !== 'TWD') {
@@ -363,8 +320,8 @@ export async function fetchAccountBalanceHistory(
       }
       points.push({ date: dateStr, balance });
     }
-
     cursor.setDate(cursor.getDate() + 1);
+    dayNum++;
   }
 
   return points;

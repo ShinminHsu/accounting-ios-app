@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { getDb } from './db';
 
 const DEFAULT_CATEGORIES: { name: string; emoji: string; children: { name: string; emoji: string }[] }[] = [
   {
@@ -58,42 +58,27 @@ const DEFAULT_CATEGORIES: { name: string; emoji: string; children: { name: strin
 ];
 
 export async function seedDefaultCategories(userId: string): Promise<void> {
-  // Check if user already has categories (idempotent)
-  const { count } = await supabase
-    .from('categories')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('is_default', true);
+  const db = await getDb();
 
-  if (count && count > 0) return;
+  const result = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) as count FROM categories WHERE user_id = ? AND is_default = 1',
+    [userId]
+  );
+  if (result && result.count > 0) return;
 
+  const now = new Date().toISOString();
   let sortOrder = 0;
   for (const parent of DEFAULT_CATEGORIES) {
-    const { data: parentRow, error } = await supabase
-      .from('categories')
-      .insert({
-        user_id: userId,
-        name: parent.name,
-        emoji: parent.emoji,
-        parent_id: null,
-        is_default: true,
-        sort_order: sortOrder++,
-      })
-      .select('id')
-      .single();
-
-    if (error || !parentRow) continue;
-
-    if (parent.children.length > 0) {
-      await supabase.from('categories').insert(
-        parent.children.map((child, i) => ({
-          user_id: userId,
-          name: child.name,
-          emoji: child.emoji,
-          parent_id: parentRow.id,
-          is_default: true,
-          sort_order: i,
-        }))
+    const parentId = crypto.randomUUID();
+    await db.runAsync(
+      'INSERT INTO categories (id, user_id, name, emoji, parent_id, is_default, sort_order, created_at) VALUES (?, ?, ?, ?, NULL, 1, ?, ?)',
+      [parentId, userId, parent.name, parent.emoji, sortOrder++, now]
+    );
+    for (let i = 0; i < parent.children.length; i++) {
+      const child = parent.children[i];
+      await db.runAsync(
+        'INSERT INTO categories (id, user_id, name, emoji, parent_id, is_default, sort_order, created_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?)',
+        [crypto.randomUUID(), userId, child.name, child.emoji, parentId, i, now]
       );
     }
   }

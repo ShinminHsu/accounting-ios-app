@@ -16,12 +16,19 @@ import { executePendingDebits } from './src/lib/reconciliation';
 import {
   subscribeToSharedTransactions, handleIncomingSharedTransaction,
 } from './src/lib/friends';
+import { initDb } from './src/lib/db';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dbReady, setDbReady] = useState(false);
 
   useEffect(() => {
+    initDb().then(() => setDbReady(true));
+  }, []);
+
+  useEffect(() => {
+    if (!dbReady) return;
     const { data: listener } = onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setLoading(false);
@@ -48,9 +55,9 @@ export default function App() {
     return () => {
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [dbReady]);
 
-  if (loading) {
+  if (!dbReady || loading) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={colors.primary} />
