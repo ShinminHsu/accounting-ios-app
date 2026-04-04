@@ -11,6 +11,7 @@ import {
   groupByDate, TransactionWithRefs,
 } from '../lib/transactions';
 import { EditTransactionSheet } from './transactions/EditTransactionSheet';
+import { CategoryIcon } from '../components/CategoryIcon';
 import { colors, typography, spacing, radius } from '../theme';
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
@@ -148,6 +149,17 @@ export function LedgerScreen() {
         <Text style={styles.monthLabel}>{year} 年 {month} 月</Text>
         <TouchableOpacity onPress={nextMonth} style={styles.navArrow}>
           <Text style={styles.navArrowText}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.todayBtn}
+          onPress={() => {
+            const now = new Date();
+            setYear(now.getFullYear());
+            setMonth(now.getMonth() + 1);
+            setSelectedDate(now.toISOString().slice(0, 10));
+          }}
+        >
+          <Text style={styles.todayBtnText}>今天</Text>
         </TouchableOpacity>
       </View>
 
@@ -331,9 +343,13 @@ function TransactionRow({
 
   return (
     <TouchableOpacity style={rowStyles.row} onPress={onEdit} onLongPress={onDelete} activeOpacity={0.7}>
-      <View style={rowStyles.emoji}>
-        <Text style={rowStyles.emojiText}>{txn.category_emoji ?? '📝'}</Text>
-      </View>
+      <CategoryIcon
+        iconKey={txn.category_emoji}
+        size={16}
+        color={colors.primary}
+        bgColor={colors.primary + '14'}
+        containerSize={36}
+      />
       <View style={rowStyles.info}>
         <Text style={rowStyles.category} numberOfLines={1}>
           {txn.name ?? txn.category_name ?? '未分類'}
@@ -355,9 +371,7 @@ function TransactionRow({
 
 const rowStyles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, paddingHorizontal: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md, marginBottom: 2 },
-  emoji: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm },
-  emojiText: { fontSize: typography.sizes.md },
-  info: { flex: 1, marginRight: spacing.sm },
+  info: { flex: 1, marginRight: spacing.sm, marginLeft: spacing.sm },
   category: { fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.text },
   payerTag: { fontSize: typography.sizes.xs, color: colors.textSecondary, fontWeight: typography.weights.regular },
   sub: { fontSize: typography.sizes.xs, color: colors.textSecondary, marginTop: 2 },
@@ -372,6 +386,8 @@ const styles = StyleSheet.create({
   navArrow: { padding: spacing.sm },
   navArrowText: { fontSize: typography.sizes.xl, color: colors.primary },
   monthLabel: { fontSize: typography.sizes.lg, fontWeight: typography.weights.semibold, color: colors.text, marginHorizontal: spacing.lg },
+  todayBtn: { position: 'absolute', right: spacing.md, paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.full, borderWidth: 1, borderColor: colors.primary },
+  todayBtnText: { fontSize: typography.sizes.xs, color: colors.primary, fontWeight: typography.weights.semibold },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: spacing.sm, paddingHorizontal: spacing.md, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
   summaryItem: { alignItems: 'center' },
   summaryLabel: { fontSize: typography.sizes.xs, color: colors.textSecondary },
