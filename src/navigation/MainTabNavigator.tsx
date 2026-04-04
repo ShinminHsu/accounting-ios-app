@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { TouchableOpacity, View, StyleSheet, Text } from 'react-native';
+import { TouchableOpacity, View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { colors, typography, spacing } from '../theme';
+import { Home, BookOpen, Plus, FolderOpen, MoreHorizontal } from 'lucide-react-native';
+import { colors, typography, spacing, shadows } from '../theme';
 import { HomeScreen } from '../screens/HomeScreen';
 import { LedgerScreen } from '../screens/LedgerScreen';
 import { ProjectsScreen } from '../screens/ProjectsScreen';
 import { MoreScreen } from '../screens/MoreScreen';
 import { AddTransactionSheet } from '../screens/transactions/AddTransactionSheet';
+import { Text } from 'react-native';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -25,19 +27,16 @@ function AddPlaceholder() {
 type TabBarIconProps = {
   label: string;
   focused: boolean;
-  isCenter?: boolean;
+  icon: React.ReactNode;
 };
 
-function TabIcon({ label, focused, isCenter }: TabBarIconProps) {
-  if (isCenter) {
-    return (
-      <View style={styles.centerButton}>
-        <Text style={styles.centerButtonText}>＋</Text>
-      </View>
-    );
-  }
+function TabIcon({ label, focused, icon }: TabBarIconProps) {
+  const color = focused ? colors.primary : colors.textSecondary;
   return (
-    <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>{label}</Text>
+    <View style={styles.tabIconContainer}>
+      {icon}
+      <Text style={[styles.tabLabel, { color }]}>{label}</Text>
+    </View>
   );
 }
 
@@ -57,21 +56,37 @@ export function MainTabNavigator() {
           name="Home"
           component={HomeScreen}
           options={{
-            tabBarIcon: ({ focused }) => <TabIcon label="首頁" focused={focused} />,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon
+                label="首頁"
+                focused={focused}
+                icon={<Home size={22} color={focused ? colors.primary : colors.textSecondary} />}
+              />
+            ),
           }}
         />
         <Tab.Screen
           name="Ledger"
           component={LedgerScreen}
           options={{
-            tabBarIcon: ({ focused }) => <TabIcon label="帳本" focused={focused} />,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon
+                label="帳本"
+                focused={focused}
+                icon={<BookOpen size={22} color={focused ? colors.primary : colors.textSecondary} />}
+              />
+            ),
           }}
         />
         <Tab.Screen
           name="Add"
           component={AddPlaceholder}
           options={{
-            tabBarIcon: () => <TabIcon label="＋" focused={false} isCenter />,
+            tabBarIcon: () => (
+              <View style={styles.centerButton}>
+                <Plus size={24} color={colors.white} strokeWidth={2.5} />
+              </View>
+            ),
             tabBarButton: (props) => (
               <TouchableOpacity
                 {...props}
@@ -86,14 +101,26 @@ export function MainTabNavigator() {
           name="Projects"
           component={ProjectsScreen}
           options={{
-            tabBarIcon: ({ focused }) => <TabIcon label="專案" focused={focused} />,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon
+                label="專案"
+                focused={focused}
+                icon={<FolderOpen size={22} color={focused ? colors.primary : colors.textSecondary} />}
+              />
+            ),
           }}
         />
         <Tab.Screen
           name="More"
           component={MoreScreen}
           options={{
-            tabBarIcon: ({ focused }) => <TabIcon label="更多" focused={focused} />,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon
+                label="更多"
+                focused={focused}
+                icon={<MoreHorizontal size={22} color={focused ? colors.primary : colors.textSecondary} />}
+              />
+            ),
           }}
         />
       </Tab.Navigator>
@@ -116,14 +143,14 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingTop: 8,
   },
+  tabIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
   tabLabel: {
     fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  tabLabelActive: {
-    color: colors.primary,
-    fontWeight: typography.weights.semibold,
+    fontWeight: typography.weights.medium,
   },
   centerTabButton: {
     flex: 1,
@@ -138,16 +165,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    ...shadows.lg,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  centerButtonText: {
-    color: colors.white,
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
-    lineHeight: 24,
   },
 });

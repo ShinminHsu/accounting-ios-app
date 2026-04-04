@@ -16,6 +16,7 @@ import { fetchRewardSummary } from '../../lib/rewards';
 import { AddTransactionSheet } from '../transactions/AddTransactionSheet';
 import { CreditCard } from '../../types/database';
 import { colors, typography, spacing, radius } from '../../theme';
+import { Check } from 'lucide-react-native';
 
 type Step = 'idle' | 'parsing' | 'review' | 'done';
 
@@ -313,7 +314,7 @@ function LineItemRow({
   return (
     <TouchableOpacity style={styles.lineItem} onPress={onToggle} activeOpacity={0.7}>
       <View style={styles.checkbox}>
-        {isChecked && <Text style={styles.checkmark}>✓</Text>}
+        {isChecked && <Check size={14} color={colors.white} strokeWidth={3} />}
       </View>
       <View style={styles.lineItemInfo}>
         <Text style={styles.lineItemMerchant}>{item.lineItem.merchant}</Text>
@@ -384,7 +385,7 @@ const styles = StyleSheet.create({
     width: 22, height: 22, borderWidth: 2, borderColor: colors.border,
     borderRadius: 6, alignItems: 'center', justifyContent: 'center',
   },
-  checkmark: { fontSize: 14, color: colors.primary, fontWeight: typography.weights.bold },
+  checkmark: { alignItems: 'center', justifyContent: 'center' },
   lineItemInfo: { flex: 1 },
   lineItemMerchant: { fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.text },
   lineItemDate: { fontSize: typography.sizes.xs, color: colors.textSecondary, marginTop: 2 },
