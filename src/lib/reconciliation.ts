@@ -185,6 +185,20 @@ export function fuzzyMatchLineItems(lineItems: ParsedLineItem[], transactions: S
   });
 }
 
+export async function fetchTransactionsForCard(
+  accountId: string,
+  billingStart: string,
+  billingEnd: string
+): Promise<SimpleTxn[]> {
+  const db = await getDb();
+  return db.getAllAsync<SimpleTxn>(
+    `SELECT id, amount, date, notes FROM transactions
+     WHERE account_id = ? AND date >= ? AND date <= ? AND is_income = 0
+     ORDER BY date DESC`,
+    [accountId, billingStart, billingEnd]
+  );
+}
+
 export async function fetchTransactionsForBillingPeriod(
   accountId: string,
   start: string,

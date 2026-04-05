@@ -8,6 +8,7 @@ import * as FileSystem from 'expo-file-system';
 import { supabase } from '../../lib/supabase';
 import {
   fetchOrCreateCurrentBill, fetchTransactionsForBillingPeriod,
+  fetchTransactionsForCard,
   parseBillWithGemini, fuzzyMatchLineItems,
   saveBillLineItems, confirmReconciliation,
   MatchedLineItem, ParsedLineItem, CreditCardBill,
@@ -15,10 +16,12 @@ import {
 import { fetchRewardSummary } from '../../lib/rewards';
 import { AddTransactionSheet } from '../transactions/AddTransactionSheet';
 import { CreditCard } from '../../types/database';
-import { colors, typography, spacing, radius } from '../../theme';
-import { Check } from 'lucide-react-native';
+import { colors, typography, spacing, radius, shadows } from '../../theme';
+import { Check, Upload, ClipboardList } from 'lucide-react-native';
 
-type Step = 'idle' | 'parsing' | 'review' | 'done';
+type Step = 'idle' | 'parsing' | 'review' | 'manual' | 'done';
+
+type SimpleTxn = { id: string; amount: number; date: string; notes: string | null };
 
 type Props = {
   creditCard: CreditCard;
@@ -36,6 +39,10 @@ export function ReconciliationScreen({ creditCard, accountId }: Props) {
   const [prefillItem, setPrefillItem] = useState<ParsedLineItem | null>(null);
   const [showAddTxn, setShowAddTxn] = useState(false);
 
+  // Manual mode state
+  const [manualTxns, setManualTxns] = useState<SimpleTxn[]>([]);
+  const [manualCheckedSet, setManualCheckedSet] = useState<Set<string>>(new Set());
+
   const yearMonth = new Date().toISOString().slice(0, 7);
 
   const load = useCallback(async () => {
@@ -51,6 +58,8 @@ export function ReconciliationScreen({ creditCard, accountId }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
+  // ── Upload path ────────────────────────────────────────────────────────────
+
   async function handleUpload() {
     const result = await DocumentPicker.getDocumentAsync({
       type: ['application/pdf', 'image/*'],
@@ -63,7 +72,6 @@ export function ReconciliationScreen({ creditCard, accountId }: Props) {
     setStep('parsing');
 
     try {
-      // Read as base64
       const base64 = await FileSystem.readAsStringAsync(asset.uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
@@ -94,22 +102,18 @@ export function ReconciliationScreen({ creditCard, accountId }: Props) {
     const matched = fuzzyMatchLineItems(items, transactions);
     setMatchedItems(matched);
 
-    // Pre-check matched items
     const initialChecked = new Set<number>();
     matched.forEach((m, i) => { if (m.isChecked) initialChecked.add(i); });
     setCheckedSet(initialChecked);
 
-    // Calculate total
     const total = items.reduce((sum, item) => sum + item.amount, 0);
     setTotalAmount(total);
 
-    // Get cashback offset from rewards
     if (userId) {
       const summary = await fetchRewardSummary(userId, creditCard.id, yearMonth);
       setCashbackOffset(summary.cashbackTotal);
     }
 
-    // Update bill status to reconciling
     await supabase
       .from('credit_card_bills')
       .update({ status: 'reconciling' })
@@ -144,10 +148,7 @@ export function ReconciliationScreen({ creditCard, accountId }: Props) {
         '\n\n確定要繼續完成對帳？',
         [
           { text: '返回檢查', style: 'cancel' },
-          {
-            text: '確定完成',
-            onPress: () => doConfirm(),
-          },
+          { text: '確定完成', onPress: () => doConfirm() },
         ]
       );
     } else {
@@ -158,7 +159,6 @@ export function ReconciliationScreen({ creditCard, accountId }: Props) {
   async function doConfirm() {
     if (!bill || !userId) return;
 
-    // Save line items
     const finalItems = matchedItems.map((m, i) => ({ ...m, isChecked: checkedSet.has(i) }));
     await saveBillLineItems(userId, bill.id, finalItems);
 
@@ -181,6 +181,91 @@ export function ReconciliationScreen({ creditCard, accountId }: Props) {
     load();
   }
 
+  // ── Manual path ────────────────────────────────────────────────────────────
+
+  async function handleEnterManual() {
+    if (!bill || !userId) return;
+
+    const txns = await fetchTransactionsForCard(
+      accountId, bill.billing_period_start, bill.billing_period_end
+    );
+    setManualTxns(txns);
+    setManualCheckedSet(new Set());
+
+    await supabase
+      .from('credit_card_bills')
+      .update({ status: 'reconciling' })
+      .eq('id', bill.id);
+
+    if (userId) {
+      const summary = await fetchRewardSummary(userId, creditCard.id, yearMonth);
+      setCashbackOffset(summary.cashbackTotal);
+    }
+
+    setStep('manual');
+  }
+
+  function toggleManualCheck(id: string) {
+    setManualCheckedSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function handleManualConfirm() {
+    const uncheckedCount = manualTxns.filter((t) => !manualCheckedSet.has(t.id)).length;
+    if (uncheckedCount > 0) {
+      Alert.alert(
+        '仍有未確認項目',
+        `仍有 ${uncheckedCount} 筆未確認，確定要完成對帳？`,
+        [
+          { text: '返回檢查', style: 'cancel' },
+          { text: '確定完成', onPress: () => doManualConfirm() },
+        ]
+      );
+    } else {
+      doManualConfirm();
+    }
+  }
+
+  async function doManualConfirm() {
+    if (!bill || !userId) return;
+
+    const finalItems: MatchedLineItem[] = manualTxns.map((txn) => ({
+      lineItem: { date: txn.date, merchant: txn.notes ?? '', amount: txn.amount },
+      matchedTransactionId: txn.id,
+      matchedTransactionNotes: txn.notes,
+      isChecked: manualCheckedSet.has(txn.id),
+      isMissing: false,
+      dateOffsetDays: 0,
+    }));
+
+    const total = manualTxns.reduce((sum, t) => sum + t.amount, 0);
+    await saveBillLineItems(userId, bill.id, finalItems);
+
+    const { error } = await confirmReconciliation(
+      userId,
+      bill.id,
+      creditCard.id,
+      total,
+      cashbackOffset,
+      creditCard.payment_due_day,
+      creditCard.auto_debit_account_id
+    );
+
+    if (error) {
+      Alert.alert('失敗', error);
+      return;
+    }
+
+    setStep('done');
+    load();
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   if (step === 'parsing') {
     return (
       <View style={styles.center}>
@@ -191,14 +276,17 @@ export function ReconciliationScreen({ creditCard, accountId }: Props) {
   }
 
   if (step === 'done') {
+    const total = manualTxns.length > 0
+      ? manualTxns.reduce((sum, t) => sum + t.amount, 0)
+      : totalAmount;
     return (
       <View style={styles.center}>
         <Text style={styles.doneEmoji}>✅</Text>
         <Text style={styles.doneTitle}>對帳完成</Text>
         <Text style={styles.doneSub}>
-          帳單金額 NT$ {totalAmount.toLocaleString('zh-TW')}
+          帳單金額 NT$ {total.toLocaleString('zh-TW')}
           {cashbackOffset > 0 ? `\n折抵回饋 NT$ ${cashbackOffset.toLocaleString('zh-TW')}` : ''}
-          {'\n實付 NT$ ' + Math.max(0, totalAmount - cashbackOffset).toLocaleString('zh-TW')}
+          {'\n實付 NT$ ' + Math.max(0, total - cashbackOffset).toLocaleString('zh-TW')}
         </Text>
       </View>
     );
@@ -256,6 +344,17 @@ export function ReconciliationScreen({ creditCard, accountId }: Props) {
     );
   }
 
+  if (step === 'manual') {
+    return (
+      <ManualReconciliationView
+        txns={manualTxns}
+        checkedSet={manualCheckedSet}
+        onToggle={toggleManualCheck}
+        onConfirm={handleManualConfirm}
+      />
+    );
+  }
+
   // idle state
   const statusLabel: Record<string, string> = {
     pending: '待對帳',
@@ -282,9 +381,39 @@ export function ReconciliationScreen({ creditCard, accountId }: Props) {
       </View>
 
       {bill?.status !== 'reconciled' && (
-        <TouchableOpacity style={styles.uploadBtn} onPress={handleUpload}>
-          <Text style={styles.uploadBtnText}>📄 上傳帳單（PDF / 圖片）</Text>
-        </TouchableOpacity>
+        <View style={styles.optionStack}>
+          {/* Primary: Upload */}
+          <TouchableOpacity
+            style={[styles.optionCard, styles.optionCardPrimary, !bill && styles.btnDisabled]}
+            onPress={handleUpload}
+            disabled={!bill}
+            activeOpacity={0.82}
+          >
+            <View style={styles.optionIconWrap}>
+              <Upload size={22} color={colors.white} strokeWidth={2} />
+            </View>
+            <View style={styles.optionText}>
+              <Text style={styles.optionTitle}>上傳帳單</Text>
+              <Text style={styles.optionDesc}>PDF 或圖片，自動比對消費</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Secondary: Manual */}
+          <TouchableOpacity
+            style={[styles.optionCard, styles.optionCardSecondary, !bill && styles.btnDisabled]}
+            onPress={handleEnterManual}
+            disabled={!bill}
+            activeOpacity={0.82}
+          >
+            <View style={[styles.optionIconWrap, styles.optionIconWrapSecondary]}>
+              <ClipboardList size={22} color={colors.primary} strokeWidth={2} />
+            </View>
+            <View style={styles.optionText}>
+              <Text style={[styles.optionTitle, styles.optionTitleSecondary]}>手動對帳</Text>
+              <Text style={[styles.optionDesc, styles.optionDescSecondary]}>逐筆確認 App 內已記錄的消費</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       )}
 
       {bill?.status === 'reconciled' && bill?.total_amount != null && (
@@ -301,7 +430,83 @@ export function ReconciliationScreen({ creditCard, accountId }: Props) {
   );
 }
 
-// ── Line item row ─────────────────────────────────────────────────────────────
+// ── Manual Reconciliation View ────────────────────────────────────────────────
+
+function ManualReconciliationView({
+  txns, checkedSet, onToggle, onConfirm,
+}: {
+  txns: SimpleTxn[];
+  checkedSet: Set<string>;
+  onToggle: (id: string) => void;
+  onConfirm: () => void;
+}) {
+  const confirmedCount = checkedSet.size;
+  const confirmedAmount = txns
+    .filter((t) => checkedSet.has(t.id))
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  if (txns.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.emptyText}>本期尚無消費記錄</Text>
+        <TouchableOpacity style={[styles.confirmBtn, styles.btnDisabled]} disabled>
+          <Text style={styles.confirmBtnText}>確認對帳完成</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.manualContainer}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <Text style={styles.sectionTitle}>本期消費（{txns.length} 筆）</Text>
+        {txns.map((txn) => (
+          <ManualTxnRow
+            key={txn.id}
+            txn={txn}
+            isChecked={checkedSet.has(txn.id)}
+            onToggle={() => onToggle(txn.id)}
+          />
+        ))}
+        {/* Bottom padding so content isn't hidden behind the sticky bar */}
+        <View style={{ height: 110 }} />
+      </ScrollView>
+
+      <View style={styles.progressBar}>
+        <View style={styles.progressInfo}>
+          <Text style={styles.progressCount}>已確認 {confirmedCount} / {txns.length} 筆</Text>
+          <Text style={styles.progressAmount}>NT$ {confirmedAmount.toLocaleString('zh-TW')}</Text>
+        </View>
+        <TouchableOpacity style={styles.confirmBtn} onPress={onConfirm}>
+          <Text style={styles.confirmBtnText}>確認對帳完成</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+function ManualTxnRow({
+  txn, isChecked, onToggle,
+}: {
+  txn: SimpleTxn;
+  isChecked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <TouchableOpacity style={styles.lineItem} onPress={onToggle} activeOpacity={0.7}>
+      <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
+        {isChecked && <Check size={14} color={colors.white} strokeWidth={3} />}
+      </View>
+      <View style={styles.lineItemInfo}>
+        <Text style={styles.lineItemMerchant}>{txn.notes ?? '（無備註）'}</Text>
+        <Text style={styles.lineItemDate}>{txn.date}</Text>
+      </View>
+      <Text style={styles.lineItemAmount}>NT$ {txn.amount.toLocaleString('zh-TW')}</Text>
+    </TouchableOpacity>
+  );
+}
+
+// ── Upload path line item row ──────────────────────────────────────────────────
 
 function LineItemRow({
   item, isChecked, onToggle, onAdd,
@@ -313,7 +518,7 @@ function LineItemRow({
 }) {
   return (
     <TouchableOpacity style={styles.lineItem} onPress={onToggle} activeOpacity={0.7}>
-      <View style={styles.checkbox}>
+      <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
         {isChecked && <Check size={14} color={colors.white} strokeWidth={3} />}
       </View>
       <View style={styles.lineItemInfo}>
@@ -347,6 +552,7 @@ const styles = StyleSheet.create({
   doneEmoji: { fontSize: 48, marginBottom: spacing.md },
   doneTitle: { fontSize: typography.sizes.xl, fontWeight: typography.weights.bold, color: colors.text, marginBottom: spacing.sm },
   doneSub: { fontSize: typography.sizes.sm, color: colors.textSecondary, textAlign: 'center', lineHeight: 22 },
+  emptyText: { fontSize: typography.sizes.sm, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.lg },
   idle: { flex: 1, padding: spacing.md },
   billStatusCard: {
     backgroundColor: colors.surface, borderRadius: radius.md,
@@ -355,11 +561,39 @@ const styles = StyleSheet.create({
   billStatusLabel: { fontSize: typography.sizes.xs, color: colors.textSecondary, marginBottom: spacing.xs },
   billStatusValue: { fontSize: typography.sizes.lg, fontWeight: typography.weights.bold, color: colors.warning },
   billPeriod: { fontSize: typography.sizes.xs, color: colors.textSecondary, marginTop: spacing.xs },
-  uploadBtn: {
-    backgroundColor: colors.primary, borderRadius: radius.md,
-    padding: spacing.md, alignItems: 'center',
+  btnDisabled: { opacity: 0.45 },
+  optionStack: { gap: spacing.sm },
+  optionCard: {
+    flexDirection: 'row', alignItems: 'center',
+    borderRadius: radius.lg, padding: spacing.md,
+    gap: spacing.md, minHeight: 72,
+    ...shadows.sm,
   },
-  uploadBtnText: { color: colors.white, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold },
+  optionCardPrimary: {
+    backgroundColor: colors.primary,
+  },
+  optionCardSecondary: {
+    backgroundColor: colors.surface,
+    borderWidth: 1.5, borderColor: colors.borderLight,
+  },
+  optionIconWrap: {
+    width: 44, height: 44, borderRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  optionIconWrapSecondary: {
+    backgroundColor: colors.surfaceAlt,
+  },
+  optionText: { flex: 1 },
+  optionTitle: {
+    fontSize: typography.sizes.md, fontWeight: typography.weights.semibold,
+    color: colors.white, marginBottom: 2,
+  },
+  optionTitleSecondary: { color: colors.text },
+  optionDesc: {
+    fontSize: typography.sizes.xs, color: 'rgba(255,255,255,0.75)', lineHeight: 16,
+  },
+  optionDescSecondary: { color: colors.textSecondary },
   reconciledSummary: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md },
   reconciledText: { fontSize: typography.sizes.sm, color: colors.text },
   scroll: { padding: spacing.md, paddingBottom: spacing.xxl },
@@ -385,7 +619,7 @@ const styles = StyleSheet.create({
     width: 22, height: 22, borderWidth: 2, borderColor: colors.border,
     borderRadius: 6, alignItems: 'center', justifyContent: 'center',
   },
-  checkmark: { alignItems: 'center', justifyContent: 'center' },
+  checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
   lineItemInfo: { flex: 1 },
   lineItemMerchant: { fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.text },
   lineItemDate: { fontSize: typography.sizes.xs, color: colors.textSecondary, marginTop: 2 },
@@ -400,8 +634,21 @@ const styles = StyleSheet.create({
   addBtnText: { fontSize: typography.sizes.xs, color: colors.white, fontWeight: typography.weights.semibold },
   missingBadge: { fontSize: typography.sizes.xs, color: colors.expense, marginTop: 2 },
   confirmBtn: {
-    marginTop: spacing.lg, backgroundColor: colors.primary, borderRadius: radius.md,
+    marginTop: spacing.sm, backgroundColor: colors.primary, borderRadius: radius.md,
     padding: spacing.md, alignItems: 'center',
   },
   confirmBtnText: { color: colors.white, fontSize: typography.sizes.md, fontWeight: typography.weights.bold },
+  // Manual mode
+  manualContainer: { flex: 1 },
+  progressBar: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1, borderTopColor: colors.borderLight,
+    padding: spacing.md,
+  },
+  progressInfo: {
+    flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs,
+  },
+  progressCount: { fontSize: typography.sizes.sm, color: colors.textSecondary },
+  progressAmount: { fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text },
 });
