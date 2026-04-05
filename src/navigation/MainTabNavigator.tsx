@@ -1,20 +1,19 @@
 import React, { useState } from 'react';
-import { TouchableOpacity, View, StyleSheet } from 'react-native';
+import { TouchableOpacity, View, StyleSheet, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, BookOpen, Plus, FolderOpen, MoreHorizontal } from 'lucide-react-native';
+import { BookOpen, Plus, FolderOpen, MoreHorizontal, Wallet } from 'lucide-react-native';
 import { colors, typography, spacing, shadows } from '../theme';
-import { HomeScreen } from '../screens/HomeScreen';
-import { LedgerScreen } from '../screens/LedgerScreen';
+import { LedgerStackNavigator } from './LedgerStackNavigator';
 import { ProjectsScreen } from '../screens/ProjectsScreen';
-import { MoreScreen } from '../screens/MoreScreen';
+import { AssetsScreen } from '../screens/AssetsScreen';
+import { MoreStackNavigator } from './MoreStackNavigator';
 import { AddTransactionSheet } from '../screens/transactions/AddTransactionSheet';
-import { Text } from 'react-native';
 
 export type MainTabParamList = {
-  Home: undefined;
   Ledger: undefined;
-  Add: undefined;
   Projects: undefined;
+  Add: undefined;
+  Assets: undefined;
   More: undefined;
 };
 
@@ -53,27 +52,27 @@ export function MainTabNavigator() {
         }}
       >
         <Tab.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <TabIcon
-                label="首頁"
-                focused={focused}
-                icon={<Home size={22} color={focused ? colors.primary : colors.textSecondary} />}
-              />
-            ),
-          }}
-        />
-        <Tab.Screen
           name="Ledger"
-          component={LedgerScreen}
+          component={LedgerStackNavigator}
           options={{
             tabBarIcon: ({ focused }) => (
               <TabIcon
                 label="帳本"
                 focused={focused}
                 icon={<BookOpen size={22} color={focused ? colors.primary : colors.textSecondary} />}
+              />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Projects"
+          component={ProjectsScreen}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon
+                label="專案"
+                focused={focused}
+                icon={<FolderOpen size={22} color={focused ? colors.primary : colors.textSecondary} />}
               />
             ),
           }}
@@ -98,21 +97,21 @@ export function MainTabNavigator() {
           }}
         />
         <Tab.Screen
-          name="Projects"
-          component={ProjectsScreen}
+          name="Assets"
+          component={AssetsScreen}
           options={{
             tabBarIcon: ({ focused }) => (
               <TabIcon
-                label="專案"
+                label="資產"
                 focused={focused}
-                icon={<FolderOpen size={22} color={focused ? colors.primary : colors.textSecondary} />}
+                icon={<Wallet size={22} color={focused ? colors.primary : colors.textSecondary} />}
               />
             ),
           }}
         />
         <Tab.Screen
           name="More"
-          component={MoreScreen}
+          component={MoreStackNavigator}
           options={{
             tabBarIcon: ({ focused }) => (
               <TabIcon

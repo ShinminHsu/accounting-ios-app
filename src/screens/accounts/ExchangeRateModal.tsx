@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, Modal, TextInput, TouchableOpacity,
-  ScrollView, Alert, ActivityIndicator,
+  ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { upsertExchangeRate, SUPPORTED_CURRENCIES } from '../../lib/accounts';
@@ -51,6 +51,10 @@ export function ExchangeRateModal({ visible, currentRates, onClose, onSaved }: P
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <View style={styles.overlay}>
         <View style={styles.card}>
           <Text style={styles.title}>匯率設定</Text>
@@ -85,12 +89,13 @@ export function ExchangeRateModal({ visible, currentRates, onClose, onSaved }: P
           </View>
         </View>
       </View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
   card: { backgroundColor: colors.surface, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing.lg, maxHeight: '70%' },
   title: { fontSize: typography.sizes.lg, fontWeight: typography.weights.semibold, color: colors.text, marginBottom: spacing.xs },
   subtitle: { fontSize: typography.sizes.sm, color: colors.textSecondary, marginBottom: spacing.md },

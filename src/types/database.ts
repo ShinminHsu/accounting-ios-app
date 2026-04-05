@@ -87,6 +87,7 @@ export interface Transaction {
   notes: string | null;
   payer_type: PayerType;
   contact_id: string | null;
+  payer_name: string | null;
   is_income: boolean;
   created_at: string;
   updated_at: string;
@@ -97,6 +98,7 @@ export interface DebtRecord {
   user_id: string;
   transaction_id: string | null;
   contact_id: string | null;
+  payer_name: string | null;
   type: DebtType;
   original_amount: number;
   repaid_amount: number;

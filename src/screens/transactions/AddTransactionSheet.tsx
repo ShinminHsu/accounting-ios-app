@@ -6,7 +6,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  CalendarDays, ChevronRight, User, UserCheck, Users, X, Tag,
+  CalendarDays, ChevronRight, X, Tag,
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { createTransaction } from '../../lib/transactions';
@@ -20,6 +20,7 @@ import {
 } from '../../lib/rewards';
 import { getActiveFriendship, writeSharedTransaction } from '../../lib/friends';
 import { CategoryIcon } from '../../components/CategoryIcon';
+import { PayerContactPicker } from '../../components/PayerContactPicker';
 import { Contact, PayerType } from '../../types/database';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 
@@ -29,10 +30,10 @@ type Props = {
   onSaved: () => void;
 };
 
-const PAYER_OPTIONS: { key: PayerType; label: string; icon: React.ReactNode }[] = [
-  { key: 'self',           label: '自己付',   icon: <User size={16} /> },
-  { key: 'paid_by_other',  label: '別人付',   icon: <UserCheck size={16} /> },
-  { key: 'paid_for_other', label: '幫人付',   icon: <Users size={16} /> },
+const PAYER_OPTIONS: { key: PayerType; label: string }[] = [
+  { key: 'self',           label: '自己付' },
+  { key: 'paid_by_other',  label: '別人付' },
+  { key: 'paid_for_other', label: '幫人付' },
 ];
 
 export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
@@ -46,6 +47,8 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [payerName, setPayerName] = useState('');
+  const [showPayerPicker, setShowPayerPicker] = useState(false);
   const [notes, setNotes] = useState('');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
@@ -99,6 +102,7 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
     setName(''); setAmount(''); setDate(new Date()); setIsIncome(false);
     setPayerType('self'); setSelectedCategoryId(null);
     setSelectedAccountId(null); setSelectedContactId(null);
+    setPayerName(''); setShowPayerPicker(false);
     setSelectedProjectId(null); setNotes(''); setExpandedCategory(null);
     setRewardPreview(null); setShowCategoryPicker(false);
   }
@@ -126,6 +130,7 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
         notes,
         payerType,
         contactId: selectedContactId,
+        payerName: payerName.trim() || null,
         isIncome,
       });
 
@@ -225,37 +230,41 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
               ))}
             </View>
 
-            {/* Amount */}
-            <View style={styles.amountRow}>
-              <Text style={styles.currency}>NT$</Text>
-              <TextInput
-                style={styles.amountInput}
-                placeholder="0"
-                placeholderTextColor={colors.textSecondary}
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="decimal-pad"
-                autoFocus
-              />
+            {/* Two-column: Amount (left 55%) | Name + Date (right 45%) */}
+            <View style={styles.twoColRow}>
+              {/* Left: amount */}
+              <View style={styles.amountCol}>
+                <Text style={styles.currency}>NT$</Text>
+                <TextInput
+                  style={styles.amountInput}
+                  placeholder="0"
+                  placeholderTextColor={colors.textSecondary}
+                  value={amount}
+                  onChangeText={setAmount}
+                  keyboardType="decimal-pad"
+                  autoFocus
+                />
+              </View>
+
+              {/* Right: name + date */}
+              <View style={styles.nameDateCol}>
+                <TextInput
+                  style={styles.nameInput}
+                  placeholder="名稱（選填）"
+                  placeholderTextColor={colors.textSecondary}
+                  value={name}
+                  onChangeText={setName}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity style={styles.datePill} onPress={() => setShowDatePicker(true)}>
+                  <CalendarDays size={12} color={colors.textSecondary} />
+                  <Text style={styles.datePillText}>{dateStr}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            {/* Name */}
-            <TextInput
-              style={styles.nameInput}
-              placeholder="名稱（選填）"
-              placeholderTextColor={colors.textSecondary}
-              value={name}
-              onChangeText={setName}
-              returnKeyType="done"
-            />
-
-            {/* Date + Category row */}
-            <View style={styles.quickRow}>
-              <TouchableOpacity style={styles.quickPill} onPress={() => setShowDatePicker(true)}>
-                <CalendarDays size={13} color={colors.textSecondary} />
-                <Text style={styles.quickPillText}>{dateStr}</Text>
-              </TouchableOpacity>
-
+            {/* Category row */}
+            <View style={[styles.quickRow, { marginBottom: spacing.md }]}>
               <TouchableOpacity
                 style={[styles.quickPill, styles.quickPillFlex, !selectedCategoryInfo && styles.quickPillRequired]}
                 onPress={() => setShowCategoryPicker(true)}
@@ -302,25 +311,24 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
               </View>
             )}
 
-            {/* Payment type */}
+            {/* Payer type: compact segmented control */}
             {!isIncome && (
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>付款方式</Text>
-                <View style={styles.payerRow}>
+                <View style={styles.segmentedRow}>
                   {PAYER_OPTIONS.map((opt) => {
                     const active = payerType === opt.key;
                     return (
                       <TouchableOpacity
                         key={opt.key}
-                        style={[styles.payerBtn, active && styles.payerBtnActive]}
-                        onPress={() => { setPayerType(opt.key); setSelectedContactId(null); }}
+                        style={[styles.segmentPill, active && styles.segmentPillActive]}
+                        onPress={() => {
+                          setPayerType(opt.key);
+                          setSelectedContactId(null);
+                          setPayerName('');
+                        }}
                       >
-                        <View style={{ opacity: active ? 1 : 0.45 }}>
-                          {React.cloneElement(opt.icon as React.ReactElement, {
-                            color: active ? colors.primary : colors.text,
-                          })}
-                        </View>
-                        <Text style={[styles.payerBtnText, active && styles.payerBtnTextActive]}>
+                        <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
                           {opt.label}
                         </Text>
                       </TouchableOpacity>
@@ -330,27 +338,20 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
               </View>
             )}
 
-            {/* Contact */}
+            {/* 代付對象 selector (shown when payer is not self) */}
             {payerType !== 'self' && !isIncome && (
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>聯絡人（選填）</Text>
-                {contacts.length === 0 ? (
-                  <Text style={styles.hint}>尚無聯絡人，請先在「更多」新增</Text>
-                ) : (
-                  <View style={styles.chipRow}>
-                    {contacts.map((c) => (
-                      <TouchableOpacity
-                        key={c.id}
-                        style={[styles.chip, selectedContactId === c.id && styles.chipActive]}
-                        onPress={() => setSelectedContactId(selectedContactId === c.id ? null : c.id)}
-                      >
-                        <Text style={[styles.chipText, selectedContactId === c.id && styles.chipTextActive]}>
-                          {c.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
+                <TouchableOpacity
+                  style={styles.payerContactBtn}
+                  onPress={() => setShowPayerPicker(true)}
+                >
+                  <Text style={styles.sectionLabel}>代付對象（選填）</Text>
+                  <Text style={styles.payerContactValue} numberOfLines={1}>
+                    {selectedContactId
+                      ? (contacts.find((c) => c.id === selectedContactId)?.name ?? '')
+                      : payerName || '點此選擇或輸入'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -413,6 +414,17 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
             )}
           </ScrollView>
         </KeyboardAvoidingView>
+
+        {/* ── 代付對象 Picker ── */}
+        <PayerContactPicker
+          contacts={contacts}
+          selectedContactId={selectedContactId}
+          payerName={payerName}
+          onChangeContactId={setSelectedContactId}
+          onChangePayerName={setPayerName}
+          visible={showPayerPicker}
+          onClose={() => setShowPayerPicker(false)}
+        />
 
         {/* ── Category Picker Bottom Sheet ── */}
         <Modal visible={showCategoryPicker} animationType="slide" transparent>
@@ -514,22 +526,37 @@ const styles = StyleSheet.create({
   typeBtnActive: { backgroundColor: colors.surface, ...shadows.sm },
   typeBtnText: { fontSize: typography.sizes.sm, color: colors.textSecondary },
   typeBtnTextActive: { color: colors.text, fontWeight: typography.weights.semibold },
-  amountRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: spacing.md,
+  // Two-column amount + name/date layout
+  twoColRow: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    marginBottom: spacing.sm, gap: spacing.sm,
   },
-  currency: { fontSize: typography.sizes.xl, color: colors.textSecondary, marginRight: spacing.xs },
+  amountCol: {
+    flex: 55, flexDirection: 'row', alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  nameDateCol: {
+    flex: 45, gap: spacing.xs,
+  },
+  currency: { fontSize: typography.sizes.lg, color: colors.textSecondary, marginRight: 4 },
   amountInput: {
-    fontSize: typography.sizes.xxxl, fontWeight: typography.weights.bold,
-    color: colors.text, minWidth: 120, textAlign: 'center',
+    fontSize: typography.sizes.xxl, fontWeight: typography.weights.bold,
+    color: colors.text, flex: 1,
   },
   nameInput: {
-    borderWidth: 1, borderColor: colors.border, borderRadius: radius.md,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    fontSize: typography.sizes.md, color: colors.text,
-    backgroundColor: colors.surface, marginBottom: spacing.sm,
+    borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm, paddingVertical: 7,
+    fontSize: typography.sizes.sm, color: colors.text,
+    backgroundColor: colors.surface,
   },
-  quickRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  datePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    borderWidth: 1, borderColor: colors.border, borderRadius: radius.full,
+    paddingHorizontal: spacing.sm, paddingVertical: 5,
+    backgroundColor: colors.surface, alignSelf: 'flex-start',
+  },
+  datePillText: { fontSize: typography.sizes.xs, color: colors.textSecondary },
+  quickRow: { flexDirection: 'row', gap: spacing.sm },
   quickPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.full,
@@ -555,17 +582,30 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontSize: typography.sizes.sm, color: colors.text },
   chipTextActive: { color: colors.white, fontWeight: typography.weights.semibold },
-  // Payment type
-  payerRow: { flexDirection: 'row', gap: spacing.sm },
-  payerBtn: {
-    flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: spacing.sm, borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface,
-    gap: 4,
+  // Compact segmented payer control
+  segmentedRow: {
+    flexDirection: 'row',
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.sm,
+    padding: 3,
+    height: 36,
   },
-  payerBtnActive: { borderColor: colors.primary, backgroundColor: colors.primary + '10' },
-  payerBtnText: { fontSize: typography.sizes.xs, color: colors.textSecondary },
-  payerBtnTextActive: { color: colors.primary, fontWeight: typography.weights.semibold },
+  segmentPill: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    borderRadius: radius.sm - 1,
+  },
+  segmentPillActive: {
+    backgroundColor: colors.surface,
+    ...shadows.sm,
+  },
+  segmentText: { fontSize: typography.sizes.sm, color: colors.textSecondary },
+  segmentTextActive: { color: colors.primary, fontWeight: typography.weights.semibold },
+  // 代付對象
+  payerContactBtn: { paddingVertical: spacing.xs },
+  payerContactValue: {
+    fontSize: typography.sizes.md, color: colors.text,
+    marginTop: 2,
+  },
   hint: { fontSize: typography.sizes.sm, color: colors.textSecondary },
   notesInput: {
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm,

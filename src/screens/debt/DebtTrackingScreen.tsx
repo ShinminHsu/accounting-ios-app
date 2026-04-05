@@ -47,7 +47,7 @@ export function DebtTrackingScreen() {
           ) : (
             summaries.map((s) => (
               <TouchableOpacity
-                key={s.contactId}
+                key={s.contactId ?? `name:${s.contactName}`}
                 style={styles.contactCard}
                 onPress={() => setSelectedContact(s)}
                 activeOpacity={0.7}
@@ -91,6 +91,7 @@ export function DebtTrackingScreen() {
           {selectedContact && userId && (
             <ContactDebtSheet
               contactId={selectedContact.contactId}
+              payerNameFilter={selectedContact.contactId ? undefined : selectedContact.contactName}
               userId={userId}
             />
           )}
@@ -102,7 +103,7 @@ export function DebtTrackingScreen() {
 
 // ── Contact debt detail sheet ─────────────────────────────────────────────────
 
-function ContactDebtSheet({ contactId, userId }: { contactId: string; userId: string }) {
+function ContactDebtSheet({ contactId, payerNameFilter, userId }: { contactId: string | null; payerNameFilter?: string; userId: string }) {
   const [records, setRecords] = useState<DebtRecordWithRefs[]>([]);
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -112,13 +113,13 @@ function ContactDebtSheet({ contactId, userId }: { contactId: string; userId: st
   const load = useCallback(async () => {
     setLoading(true);
     const [recs, accs] = await Promise.all([
-      fetchDebtRecordsForContact(userId, contactId),
+      fetchDebtRecordsForContact(userId, contactId, payerNameFilter),
       fetchAccounts(userId),
     ]);
     setRecords(recs);
     setAccounts(accs);
     setLoading(false);
-  }, [userId, contactId]);
+  }, [userId, contactId, payerNameFilter]);
 
   useEffect(() => { load(); }, [load]);
 

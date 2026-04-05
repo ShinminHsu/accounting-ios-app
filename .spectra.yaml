@@ -11,7 +11,7 @@ locale: en
 # Workflow toggles
 # tdd: true
 # audit: true
-# parallel_tasks: true
+parallel_tasks: true
 
 # Claude slash commands (set true to also generate /spectra:X commands)
 claude_slash_commands: true

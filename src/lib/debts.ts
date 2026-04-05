@@ -9,7 +9,7 @@ export type DebtRecordWithRefs = DebtRecord & {
 };
 
 export type ContactDebtSummary = {
-  contactId: string;
+  contactId: string | null;   // null for free-text payer (no saved contact)
   contactName: string;
   netBalance: number;
   outstandingCount: number;
@@ -21,6 +21,7 @@ function rowToDebt(row: any): DebtRecord {
     user_id: row.user_id,
     transaction_id: row.transaction_id ?? null,
     contact_id: row.contact_id ?? null,
+    payer_name: row.payer_name ?? null,
     type: row.type,
     original_amount: row.original_amount,
     repaid_amount: row.repaid_amount,
@@ -32,43 +33,86 @@ function rowToDebt(row: any): DebtRecord {
   };
 }
 
+export async function fetchOutstandingTotals(
+  userId: string
+): Promise<{ lent: number; borrowed: number }> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<any>(
+    `SELECT type, SUM(original_amount - repaid_amount) as total
+     FROM debt_records
+     WHERE user_id = ? AND status != 'settled'
+     GROUP BY type`,
+    [userId]
+  );
+  let lent = 0;
+  let borrowed = 0;
+  for (const row of rows) {
+    if (row.type === 'receivable') lent = row.total ?? 0;
+    else borrowed = row.total ?? 0;
+  }
+  return { lent, borrowed };
+}
+
 export async function fetchDebtSummaryByContact(userId: string): Promise<ContactDebtSummary[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<any>(
     `SELECT d.*, c.name as contact_name
      FROM debt_records d
      LEFT JOIN contacts c ON d.contact_id = c.id
-     WHERE d.user_id = ? AND d.status != 'settled' AND d.contact_id IS NOT NULL`,
+     WHERE d.user_id = ? AND d.status != 'settled'
+       AND (d.contact_id IS NOT NULL OR d.payer_name IS NOT NULL)`,
     [userId]
   );
 
   const map: Record<string, ContactDebtSummary> = {};
   for (const row of rows) {
-    const contactId = row.contact_id as string;
-    const contactName = row.contact_name ?? '未知聯絡人';
-    if (!map[contactId]) map[contactId] = { contactId, contactName, netBalance: 0, outstandingCount: 0 };
+    // Group by contactId when available, otherwise by payer_name
+    const key: string = row.contact_id ?? `name:${row.payer_name}`;
+    const contactName: string = row.contact_name ?? row.payer_name ?? '未知';
+    if (!map[key]) {
+      map[key] = {
+        contactId: row.contact_id ?? null,
+        contactName,
+        netBalance: 0,
+        outstandingCount: 0,
+      };
+    }
     const outstanding = row.original_amount - row.repaid_amount;
-    if (row.type === 'receivable') map[contactId].netBalance += outstanding;
-    else map[contactId].netBalance -= outstanding;
-    map[contactId].outstandingCount++;
+    if (row.type === 'receivable') map[key].netBalance += outstanding;
+    else map[key].netBalance -= outstanding;
+    map[key].outstandingCount++;
   }
   return Object.values(map).sort((a, b) => b.outstandingCount - a.outstandingCount);
 }
 
 export async function fetchDebtRecordsForContact(
   userId: string,
-  contactId: string
+  contactId: string | null,
+  payerNameFilter?: string
 ): Promise<DebtRecordWithRefs[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<any>(
-    `SELECT d.*, c.name as contact_name, t.date as transaction_date, t.notes as transaction_notes
-     FROM debt_records d
-     LEFT JOIN contacts c ON d.contact_id = c.id
-     LEFT JOIN transactions t ON d.transaction_id = t.id
-     WHERE d.user_id = ? AND d.contact_id = ?
-     ORDER BY d.created_at DESC`,
-    [userId, contactId]
-  );
+  let rows: any[];
+  if (contactId) {
+    rows = await db.getAllAsync<any>(
+      `SELECT d.*, c.name as contact_name, t.date as transaction_date, t.notes as transaction_notes
+       FROM debt_records d
+       LEFT JOIN contacts c ON d.contact_id = c.id
+       LEFT JOIN transactions t ON d.transaction_id = t.id
+       WHERE d.user_id = ? AND d.contact_id = ?
+       ORDER BY d.created_at DESC`,
+      [userId, contactId]
+    );
+  } else {
+    rows = await db.getAllAsync<any>(
+      `SELECT d.*, c.name as contact_name, t.date as transaction_date, t.notes as transaction_notes
+       FROM debt_records d
+       LEFT JOIN contacts c ON d.contact_id = c.id
+       LEFT JOIN transactions t ON d.transaction_id = t.id
+       WHERE d.user_id = ? AND d.contact_id IS NULL AND d.payer_name = ?
+       ORDER BY d.created_at DESC`,
+      [userId, payerNameFilter ?? '']
+    );
+  }
   return rows.map((row) => ({
     ...rowToDebt(row),
     contact_name: row.contact_name ?? null,
@@ -91,9 +135,9 @@ export async function recordRepayment(
 
   const isIncome = debtRecord.type === 'receivable';
   const { error: txErr } = await createTransaction(userId, {
-    amount, date, categoryId: null, accountId, projectId: null,
+    amount, date, name: null, categoryId: null, accountId, projectId: null,
     notes: debtRecord.type === 'receivable' ? '應收款回收' : '應付款還款',
-    payerType: 'self', contactId: debtRecord.contact_id, isIncome,
+    payerType: 'self', contactId: debtRecord.contact_id, payerName: null, isIncome,
   });
   if (txErr) return { error: txErr };
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, Modal, TextInput, TouchableOpacity,
-  ScrollView, Alert, ActivityIndicator,
+  ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import {
@@ -18,9 +18,9 @@ const RULE_TYPE_LABELS: Record<RewardRuleType, string> = {
 };
 
 const REWARD_TYPE_LABELS: Record<RewardType, string> = {
-  cashback_offset: '帳單折抵',
-  points: '點數',
-  account_deposit: '帳戶回饋',
+  cashback_offset: '現金回饋抵扣',
+  points: '點數累積',
+  account_deposit: '存入指定帳戶',
 };
 
 type Props = {
@@ -140,6 +140,11 @@ export function CreateRewardRuleModal({
           </TouchableOpacity>
         </View>
 
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={8}
+        >
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <Text style={styles.label}>規則類型</Text>
           <View style={styles.chipRow}>
@@ -189,7 +194,7 @@ export function CreateRewardRuleModal({
             </>
           )}
 
-          <Text style={styles.label}>回饋率（%）</Text>
+          <Text style={styles.label}>回饋比例（%）</Text>
           <TextInput
             style={styles.input}
             placeholder="例如：3"
@@ -257,7 +262,7 @@ export function CreateRewardRuleModal({
             keyboardType="decimal-pad"
           />
 
-          <Text style={styles.label}>單筆最低消費門檻（選填）</Text>
+          <Text style={styles.label}>最低消費門檻（選填）</Text>
           <TextInput
             style={styles.input}
             placeholder="無門檻則留空"
@@ -267,6 +272,7 @@ export function CreateRewardRuleModal({
             keyboardType="decimal-pad"
           />
         </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

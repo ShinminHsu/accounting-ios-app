@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, Modal, TextInput, TouchableOpacity,
-  ScrollView, Alert, ActivityIndicator,
+  ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { createRecurringTemplate } from '../../lib/recurring';
@@ -129,6 +129,11 @@ export function CreateRecurringModal({ visible, onClose, onCreated }: Props) {
           </TouchableOpacity>
         </View>
 
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={8}
+        >
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <Text style={styles.label}>金額</Text>
           <TextInput
@@ -265,6 +270,7 @@ export function CreateRecurringModal({ visible, onClose, onCreated }: Props) {
             multiline
           />
         </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

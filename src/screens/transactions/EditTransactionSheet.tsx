@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, Modal, TextInput, TouchableOpacity,
-  ScrollView, Alert, ActivityIndicator, Platform,
+  ScrollView, Alert, ActivityIndicator, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CalendarDays } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { updateTransaction, hasLinkedDebt } from '../../lib/transactions';
 import { fetchCategories, CategoryWithChildren } from '../../lib/categories';
@@ -21,6 +22,7 @@ type Props = {
 
 export function EditTransactionSheet({ visible, transaction, onClose, onSaved }: Props) {
   const [amount, setAmount] = useState('');
+  const [name, setName] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isIncome, setIsIncome] = useState(false);
@@ -38,6 +40,7 @@ export function EditTransactionSheet({ visible, transaction, onClose, onSaved }:
     if (!visible || !transaction) return;
 
     setAmount(String(transaction.amount));
+    setName(transaction.name ?? '');
     setDate(new Date(transaction.date));
     setIsIncome(transaction.is_income);
     setSelectedCategoryId(transaction.category_id);
@@ -68,6 +71,7 @@ export function EditTransactionSheet({ visible, transaction, onClose, onSaved }:
     const { error } = await updateTransaction(transaction.id, {
       amount: parsed,
       date: date.toISOString().slice(0, 10),
+      name: name.trim() || null,
       categoryId: selectedCategoryId,
       accountId: selectedAccountId,
       notes,
@@ -102,6 +106,11 @@ export function EditTransactionSheet({ visible, transaction, onClose, onSaved }:
           </TouchableOpacity>
         </View>
 
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={8}
+        >
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           {/* Income / Expense toggle */}
           <View style={styles.typeToggle}>
@@ -118,24 +127,35 @@ export function EditTransactionSheet({ visible, transaction, onClose, onSaved }:
             ))}
           </View>
 
-          {/* Amount */}
-          <View style={styles.amountRow}>
-            <Text style={styles.currency}>NT$</Text>
-            <TextInput
-              style={styles.amountInput}
-              placeholder="0"
-              placeholderTextColor={colors.textSecondary}
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="decimal-pad"
-            />
+          {/* Two-column: Amount (left 55%) | Name + Date (right 45%) */}
+          <View style={styles.twoColRow}>
+            <View style={styles.amountCol}>
+              <Text style={styles.currency}>NT$</Text>
+              <TextInput
+                style={styles.amountInput}
+                placeholder="0"
+                placeholderTextColor={colors.textSecondary}
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="decimal-pad"
+              />
+            </View>
+            <View style={styles.nameDateCol}>
+              <TextInput
+                style={styles.nameInput}
+                placeholder="名稱（選填）"
+                placeholderTextColor={colors.textSecondary}
+                value={name}
+                onChangeText={setName}
+                returnKeyType="done"
+              />
+              <TouchableOpacity style={styles.datePill} onPress={() => setShowDatePicker(true)}>
+                <CalendarDays size={12} color={colors.textSecondary} />
+                <Text style={styles.datePillText}>{dateStr}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Date */}
-          <TouchableOpacity style={styles.field} onPress={() => setShowDatePicker(true)}>
-            <Text style={styles.fieldLabel}>日期</Text>
-            <Text style={styles.fieldValue}>{dateStr}</Text>
-          </TouchableOpacity>
           {showDatePicker && (
             <DateTimePicker
               value={date}
@@ -226,6 +246,7 @@ export function EditTransactionSheet({ visible, transaction, onClose, onSaved }:
             />
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
@@ -243,9 +264,14 @@ const styles = StyleSheet.create({
   typeBtnActive: { backgroundColor: colors.surface, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
   typeBtnText: { fontSize: typography.sizes.sm, color: colors.textSecondary },
   typeBtnTextActive: { color: colors.text, fontWeight: typography.weights.semibold },
-  amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.lg },
-  currency: { fontSize: typography.sizes.xl, color: colors.textSecondary, marginRight: spacing.xs },
-  amountInput: { fontSize: typography.sizes.xxxl, fontWeight: typography.weights.bold, color: colors.text, minWidth: 120, textAlign: 'center' },
+  twoColRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.sm, gap: spacing.sm },
+  amountCol: { flex: 55, flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
+  nameDateCol: { flex: 45, gap: spacing.xs },
+  currency: { fontSize: typography.sizes.lg, color: colors.textSecondary, marginRight: 4 },
+  amountInput: { fontSize: typography.sizes.xxl, fontWeight: typography.weights.bold, color: colors.text, flex: 1 },
+  nameInput: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 7, fontSize: typography.sizes.sm, color: colors.text, backgroundColor: colors.surface },
+  datePill: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: colors.border, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 5, backgroundColor: colors.surface, alignSelf: 'flex-start' },
+  datePillText: { fontSize: typography.sizes.xs, color: colors.textSecondary },
   field: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm },
   fieldLabel: { fontSize: typography.sizes.md, color: colors.textSecondary },
   fieldValue: { fontSize: typography.sizes.md, color: colors.text, fontWeight: typography.weights.medium },

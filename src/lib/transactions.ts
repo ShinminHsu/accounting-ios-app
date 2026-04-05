@@ -11,6 +11,7 @@ export type TransactionInput = {
   notes: string;
   payerType: PayerType;
   contactId: string | null;
+  payerName: string | null;
   isIncome: boolean;
 };
 
@@ -27,6 +28,7 @@ function rowToTransaction(row: any): Transaction {
     notes: row.notes ?? null,
     payer_type: row.payer_type as PayerType,
     contact_id: row.contact_id ?? null,
+    payer_name: row.payer_name ?? null,
     is_income: row.is_income === 1,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -45,26 +47,27 @@ export async function createTransaction(
 
   await db.runAsync(
     `INSERT INTO transactions
-     (id, user_id, amount, date, name, category_id, account_id, project_id, notes, payer_type, contact_id, is_income, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, user_id, amount, date, name, category_id, account_id, project_id, notes, payer_type, contact_id, payer_name, is_income, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id, userId, input.amount, input.date,
       input.name ?? null,
       input.categoryId ?? null, accountId ?? null, input.projectId ?? null,
       input.notes || null, input.payerType, input.contactId ?? null,
+      input.payerName ?? null,
       input.isIncome ? 1 : 0, now, now,
     ]
   );
 
-  // Double-entry: create debt record when payer type is not self and contact provided
-  if (input.payerType !== 'self' && input.contactId) {
+  // Double-entry: create debt record when payer type is not self and a contact or free-text name is provided
+  if (input.payerType !== 'self' && (input.contactId || input.payerName)) {
     const debtType: DebtType =
       input.payerType === 'paid_by_other' ? 'liability' : 'receivable';
     await db.runAsync(
       `INSERT INTO debt_records
-       (id, user_id, transaction_id, contact_id, type, original_amount, repaid_amount, currency, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, 0, 'TWD', 'outstanding', ?)`,
-      [generateUUID(), userId, id, input.contactId, debtType, input.amount, now]
+       (id, user_id, transaction_id, contact_id, payer_name, type, original_amount, repaid_amount, currency, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'TWD', 'outstanding', ?)`,
+      [generateUUID(), userId, id, input.contactId ?? null, input.payerName ?? null, debtType, input.amount, now]
     );
   }
 
@@ -82,6 +85,7 @@ export async function updateTransaction(
     `UPDATE transactions SET
        amount = COALESCE(?, amount),
        date = COALESCE(?, date),
+       name = COALESCE(?, name),
        category_id = ?,
        account_id = ?,
        project_id = ?,
@@ -91,6 +95,7 @@ export async function updateTransaction(
      WHERE id = ?`,
     [
       input.amount ?? null, input.date ?? null,
+      input.name ?? null,
       input.categoryId ?? null, input.accountId ?? null,
       input.projectId ?? null, input.notes ?? null,
       input.isIncome !== undefined ? (input.isIncome ? 1 : 0) : null,
@@ -150,6 +155,38 @@ export async function fetchTransactionsForMonth(
     [userId, start, end]
   );
 
+  return rows.map((row) => ({
+    ...rowToTransaction(row),
+    category_name: row.category_name ?? null,
+    category_emoji: row.category_emoji ?? null,
+    account_name: row.account_name ?? null,
+    contact_name: row.contact_name ?? null,
+  }));
+}
+
+// ─── Full-text search across all transactions ─────────────────────────────
+export async function searchTransactions(
+  userId: string,
+  query: string
+): Promise<TransactionWithRefs[]> {
+  const db = await getDb();
+  const q = `%${query}%`;
+  const rows = await db.getAllAsync<any>(
+    `SELECT t.*,
+            c.name as category_name, c.emoji as category_emoji,
+            a.name as account_name,
+            co.name as contact_name
+     FROM transactions t
+     LEFT JOIN categories c ON t.category_id = c.id
+     LEFT JOIN accounts a ON t.account_id = a.id
+     LEFT JOIN contacts co ON t.contact_id = co.id
+     WHERE t.user_id = ? AND (
+       t.name LIKE ? OR t.notes LIKE ? OR c.name LIKE ?
+     )
+     ORDER BY t.date DESC, t.created_at DESC
+     LIMIT 100`,
+    [userId, q, q, q]
+  );
   return rows.map((row) => ({
     ...rowToTransaction(row),
     category_name: row.category_name ?? null,

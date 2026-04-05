@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, Modal, TextInput, TouchableOpacity,
-  ScrollView, Alert, ActivityIndicator,
+  ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import {
@@ -80,6 +80,10 @@ export function CreateAccountModal({ visible, bankAccounts, onClose, onCreated }
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <View style={styles.overlay}>
         <View style={styles.card}>
           <Text style={styles.title}>{step === 1 ? '新增帳戶' : '信用卡設定'}</Text>
@@ -163,12 +167,13 @@ export function CreateAccountModal({ visible, bankAccounts, onClose, onCreated }
           </View>
         </View>
       </View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
   card: { backgroundColor: colors.surface, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing.lg, maxHeight: '85%' },
   title: { fontSize: typography.sizes.lg, fontWeight: typography.weights.semibold, color: colors.text, marginBottom: spacing.md },
   label: { fontSize: typography.sizes.sm, color: colors.textSecondary, marginBottom: spacing.xs, marginTop: spacing.sm },

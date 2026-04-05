@@ -1,76 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
-  ChevronLeft, ChevronRight,
+  ChevronRight,
   Landmark, Handshake, Users, BarChart2, Tag, Repeat,
 } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../theme';
-import { AccountsScreen } from './accounts/AccountsScreen';
-import { CategorySettingsScreen } from './settings/CategorySettingsScreen';
-import { RecurringTemplatesScreen } from './settings/RecurringTemplatesScreen';
-import { DebtTrackingScreen } from './debt/DebtTrackingScreen';
-import { FriendsScreen } from './friends/FriendsScreen';
-import { ReportsScreen } from './reports/ReportsScreen';
+import { colors, typography, spacing } from '../theme';
+import { MoreStackParamList } from '../navigation/MoreStackNavigator';
 
-// ── Generic full-screen modal shell ─────────────────────────────────────────
-
-function ScreenModal({
-  title, visible, onClose, children,
-}: {
-  title: string;
-  visible: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={shell.container} edges={['top', 'bottom']}>
-        <View style={shell.header}>
-          <TouchableOpacity
-            onPress={onClose}
-            style={shell.backBtn}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <View style={shell.backInner}>
-              <ChevronLeft size={18} color={colors.primary} />
-              <Text style={shell.backText}>返回</Text>
-            </View>
-          </TouchableOpacity>
-          <Text style={shell.title}>{title}</Text>
-          <View style={shell.backBtn} />
-        </View>
-        {children}
-      </SafeAreaView>
-    </Modal>
-  );
-}
-
-const shell = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-    backgroundColor: colors.surface,
-  },
-  title: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semibold,
-    color: colors.text,
-  },
-  backBtn: { width: 64 },
-  backInner: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  backText: { fontSize: typography.sizes.md, color: colors.primary },
-});
-
-// ── Menu components ──────────────────────────────────────────────────────────
+type NavigationProp = NativeStackNavigationProp<MoreStackParamList>;
 
 function SectionHeader({ title }: { title: string }) {
   return <Text style={styles.sectionHeader}>{title}</Text>;
@@ -98,82 +40,49 @@ function MenuItem({
   );
 }
 
-// ── More screen ──────────────────────────────────────────────────────────────
-
 export function MoreScreen() {
-  const [showAccounts, setShowAccounts] = useState(false);
-  const [showCategories, setShowCategories] = useState(false);
-  const [showRecurring, setShowRecurring] = useState(false);
-  const [showDebt, setShowDebt] = useState(false);
-  const [showFriends, setShowFriends] = useState(false);
-  const [showReports, setShowReports] = useState(false);
+  const navigation = useNavigation<NavigationProp>();
 
   return (
-    <>
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scroll}>
-          <SectionHeader title="財務" />
-          <MenuItem
-            label="帳戶管理"
-            icon={<Landmark size={20} color={colors.primary} />}
-            onPress={() => setShowAccounts(true)}
-          />
-          <MenuItem
-            label="負債追蹤"
-            icon={<Handshake size={20} color={colors.primary} />}
-            onPress={() => setShowDebt(true)}
-          />
-          <MenuItem
-            label="好友"
-            icon={<Users size={20} color={colors.primary} />}
-            onPress={() => setShowFriends(true)}
-          />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <SectionHeader title="財務" />
+        <MenuItem
+          label="帳戶管理"
+          icon={<Landmark size={20} color={colors.primary} />}
+          onPress={() => navigation.navigate('AccountsScreen')}
+        />
+        <MenuItem
+          label="借還款追蹤"
+          icon={<Handshake size={20} color={colors.primary} />}
+          onPress={() => navigation.navigate('DebtTrackingScreen')}
+        />
+        <MenuItem
+          label="好友"
+          icon={<Users size={20} color={colors.primary} />}
+          onPress={() => navigation.navigate('FriendsScreen')}
+        />
 
-          <SectionHeader title="分析" />
-          <MenuItem
-            label="報表"
-            icon={<BarChart2 size={20} color={colors.primary} />}
-            onPress={() => setShowReports(true)}
-          />
+        <SectionHeader title="分析" />
+        <MenuItem
+          label="報表"
+          icon={<BarChart2 size={20} color={colors.primary} />}
+          onPress={() => navigation.navigate('ReportsScreen')}
+        />
 
-          <SectionHeader title="設定" />
-          <MenuItem
-            label="分類管理"
-            icon={<Tag size={20} color={colors.primary} />}
-            onPress={() => setShowCategories(true)}
-          />
-          <MenuItem
-            label="定期記錄"
-            icon={<Repeat size={20} color={colors.primary} />}
-            onPress={() => setShowRecurring(true)}
-          />
-        </ScrollView>
-      </SafeAreaView>
-
-      <ScreenModal title="帳戶管理" visible={showAccounts} onClose={() => setShowAccounts(false)}>
-        <AccountsScreen />
-      </ScreenModal>
-
-      <ScreenModal title="分類管理" visible={showCategories} onClose={() => setShowCategories(false)}>
-        <CategorySettingsScreen />
-      </ScreenModal>
-
-      <ScreenModal title="定期記錄" visible={showRecurring} onClose={() => setShowRecurring(false)}>
-        <RecurringTemplatesScreen />
-      </ScreenModal>
-
-      <ScreenModal title="負債追蹤" visible={showDebt} onClose={() => setShowDebt(false)}>
-        <DebtTrackingScreen />
-      </ScreenModal>
-
-      <ScreenModal title="好友" visible={showFriends} onClose={() => setShowFriends(false)}>
-        <FriendsScreen />
-      </ScreenModal>
-
-      <ScreenModal title="報表" visible={showReports} onClose={() => setShowReports(false)}>
-        <ReportsScreen />
-      </ScreenModal>
-    </>
+        <SectionHeader title="設定" />
+        <MenuItem
+          label="分類管理"
+          icon={<Tag size={20} color={colors.primary} />}
+          onPress={() => navigation.navigate('CategorySettingsScreen')}
+        />
+        <MenuItem
+          label="定期記錄"
+          icon={<Repeat size={20} color={colors.primary} />}
+          onPress={() => navigation.navigate('RecurringTemplatesScreen')}
+        />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

@@ -1,16 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity,
   Alert, TextInput, Modal, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ChevronDown, ChevronRight } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import {
   fetchCategories, createCategory, updateCategory, deleteCategory,
   CategoryWithChildren,
 } from '../../lib/categories';
+import { CATEGORY_ICON_MAP } from '../../lib/categoryIcons';
 import { Category } from '../../types/database';
-import { CategoryIcon } from '../../components/CategoryIcon';
+import { CategoryIconButton } from '../../components/CategoryIconButton';
 import { colors, typography, spacing, radius } from '../../theme';
 
 export function CategorySettingsScreen() {
@@ -121,10 +123,12 @@ export function CategorySettingsScreen() {
             {/* Parent row */}
             <View style={styles.parentRow}>
               <TouchableOpacity style={styles.expandBtn} onPress={() => toggleExpand(parent.id)}>
-                <Text style={styles.arrow}>{expanded.has(parent.id) ? '▾' : '▸'}</Text>
+                {expanded.has(parent.id)
+                  ? <ChevronDown size={20} color={colors.textSecondary} />
+                  : <ChevronRight size={20} color={colors.textSecondary} />}
               </TouchableOpacity>
               <View style={{ marginRight: spacing.sm }}>
-                <CategoryIcon iconKey={parent.emoji} size={18} color={colors.primary} bgColor={colors.primaryLight + '20'} containerSize={34} />
+                <CategoryIconButton iconKey={parent.emoji} />
               </View>
               <Text style={styles.parentName}>{parent.name}</Text>
               <View style={styles.actions}>
@@ -184,22 +188,29 @@ export function CategorySettingsScreen() {
               {editing ? '編輯分類' : parentId ? '新增子分類' : '新增分類'}
             </Text>
 
-            <View style={styles.row}>
-              <TextInput
-                style={[styles.input, styles.emojiInput]}
-                placeholder="😀"
-                value={emoji}
-                onChangeText={setEmoji}
-                maxLength={2}
-              />
-              <TextInput
-                style={[styles.input, styles.nameInput]}
-                placeholder="分類名稱"
-                placeholderTextColor={colors.textSecondary}
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
+            {/* Name input */}
+            <TextInput
+              style={[styles.input, styles.nameInput]}
+              placeholder="分類名稱"
+              placeholderTextColor={colors.textSecondary}
+              value={name}
+              onChangeText={setName}
+            />
+
+            {/* Icon picker grid — shows actual rendered icons */}
+            <Text style={styles.iconPickerLabel}>選擇圖示</Text>
+            <ScrollView horizontal={false} style={{ maxHeight: 200 }} nestedScrollEnabled>
+              <View style={styles.iconGrid}>
+                {Object.keys(CATEGORY_ICON_MAP).map((key) => (
+                  <CategoryIconButton
+                    key={key}
+                    iconKey={key}
+                    selected={emoji === key}
+                    onPress={() => setEmoji(key)}
+                  />
+                ))}
+              </View>
+            </ScrollView>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
@@ -231,8 +242,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderRadius: radius.md,
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
   },
-  expandBtn: { marginRight: spacing.xs },
-  arrow: { fontSize: typography.sizes.sm, color: colors.textSecondary, width: 16 },
+  expandBtn: { marginRight: spacing.xs, width: 24, alignItems: 'center' },
   parentName: { flex: 1, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.text },
   childrenContainer: {
     marginLeft: spacing.lg,
@@ -257,6 +267,15 @@ const styles = StyleSheet.create({
     alignItems: 'center', marginTop: spacing.md,
   },
   addParentText: { color: colors.primary, fontSize: typography.sizes.md },
+  iconPickerLabel: {
+    fontSize: typography.sizes.xs, color: colors.textSecondary,
+    fontWeight: typography.weights.medium, marginBottom: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  iconGrid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    gap: 4,
+  },
   // Modal
   modalOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   modalCard: {
@@ -264,14 +283,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   modalTitle: { fontSize: typography.sizes.lg, fontWeight: typography.weights.semibold, color: colors.text, marginBottom: spacing.md },
-  row: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   input: {
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm,
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
     fontSize: typography.sizes.md, color: colors.text, backgroundColor: colors.surfaceAlt,
   },
-  emojiInput: { width: 56, textAlign: 'center' },
-  nameInput: { flex: 1 },
+  nameInput: { flex: 1, marginBottom: spacing.xs },
   modalActions: { flexDirection: 'row', gap: spacing.sm },
   cancelBtn: {
     flex: 1, paddingVertical: spacing.md, borderRadius: radius.md,
