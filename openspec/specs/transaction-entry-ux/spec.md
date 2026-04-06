@@ -108,51 +108,52 @@ code:
 ---
 ### Requirement: Optional contact for debt payer types
 
-When `payer_type` is `paid_for_other` or `paid_by_other`, the contact selector SHALL be labelled "聯絡人（選填）" and SHALL NOT be required. Saving a transaction with these payer types and no contact SHALL succeed.
+When `payer_type` is `paid_for_other` or `paid_by_other`, the contact field SHALL be labelled "代付對象（選填）" and SHALL NOT be required. The field SHALL use the payer contact picker (see payer-contact spec) supporting both saved contacts and free-text input. Saving with no selection SHALL succeed with `contact_id = null` and `payer_name = null`.
 
 #### Scenario: Save paid-for-other without contact
 
-- **WHEN** the user sets payer type to "幫別人付" and leaves the contact field blank and taps Save
-- **THEN** the transaction SHALL be saved with `contact_id = null` and no error SHALL be shown
+- **WHEN** the user sets payer type to "幫人付" and leaves the "代付對象" field blank and taps Save
+- **THEN** the transaction SHALL be saved with `contact_id = null` and `payer_name = null` and no error SHALL be shown
 
 #### Scenario: Save paid-by-other without contact
 
-- **WHEN** the user sets payer type to "別人幫我付" and leaves the contact field blank and taps Save
-- **THEN** the transaction SHALL be saved with `contact_id = null` and no error SHALL be shown
+- **WHEN** the user sets payer type to "別人付" and leaves the "代付對象" field blank and taps Save
+- **THEN** the transaction SHALL be saved with `contact_id = null` and `payer_name = null` and no error SHALL be shown
+
+#### Scenario: Save paid-by-other with free-text payer name
+
+- **WHEN** the user sets payer type to "別人付" and types "室友小明" in the free-text name field and taps Save
+- **THEN** the transaction SHALL be saved with `payer_name = "室友小明"` and `contact_id = null`
 
 
 <!-- @trace
-source: ui-and-ux-fixes
-updated: 2026-04-04
+source: ui-comprehensive-redesign
+updated: 2026-04-05
 code:
-  - src/lib/projects.ts
-  - src/screens/accounts/AccountsScreen.tsx
-  - App.tsx
-  - src/screens/MoreScreen.tsx
-  - src/screens/creditcards/ReconciliationScreen.tsx
-  - src/theme/index.ts
-  - src/components/CategoryIcon.tsx
-  - src/screens/projects/CreateProjectModal.tsx
-  - src/screens/ProjectsScreen.tsx
-  - src/lib/db.ts
-  - src/lib/reconciliation.ts
-  - src/screens/LedgerScreen.tsx
-  - src/lib/recurring.ts
-  - src/lib/categoryIcons.ts
-  - src/lib/reports.ts
-  - src/lib/accounts.ts
-  - src/lib/seedCategories.ts
-  - src/lib/contacts.ts
-  - src/types/database.ts
+  - src/screens/transactions/TransactionSearchScreen.tsx
+  - src/navigation/LedgerStackNavigator.tsx
   - src/navigation/MainTabNavigator.tsx
-  - src/lib/rewards.ts
-  - src/screens/settings/CategorySettingsScreen.tsx
-  - src/lib/categories.ts
+  - src/screens/accounts/CreateAccountModal.tsx
+  - .spectra.yaml
   - src/screens/HomeScreen.tsx
+  - src/screens/creditcards/CreateRewardRuleModal.tsx
+  - src/screens/debt/DebtTrackingScreen.tsx
+  - src/screens/settings/CategorySettingsScreen.tsx
+  - supabase/migrations/006_payer_name.sql
+  - src/components/CategoryIconButton.tsx
+  - src/screens/AssetsScreen.tsx
+  - src/screens/settings/CreateRecurringModal.tsx
+  - src/screens/settings/EditRecurringModal.tsx
   - src/screens/transactions/AddTransactionSheet.tsx
-  - src/lib/transactions.ts
-  - package.json
+  - src/screens/accounts/ExchangeRateModal.tsx
+  - src/screens/transactions/EditTransactionSheet.tsx
   - src/lib/debts.ts
+  - src/navigation/MoreStackNavigator.tsx
+  - src/screens/LedgerScreen.tsx
+  - src/components/PayerContactPicker.tsx
+  - src/lib/transactions.ts
+  - src/types/database.ts
+  - src/screens/MoreScreen.tsx
 -->
 
 ---
@@ -202,4 +203,95 @@ code:
   - src/lib/transactions.ts
   - package.json
   - src/lib/debts.ts
+-->
+
+---
+### Requirement: Two-column amount and name layout
+
+The transaction entry form SHALL display the amount input (currency symbol + number field) in the left 55% of a flex row, and the name field + date pill stacked in the right 45% of the same row. The income/expense toggle SHALL remain above this two-column row.
+
+#### Scenario: Amount and name on same visual row
+
+- **WHEN** the user opens the transaction entry form
+- **THEN** the amount input SHALL appear on the left half and the name/date fields SHALL appear on the right half of the same row, with both visible simultaneously without scrolling
+
+#### Scenario: Name field still optional in new layout
+
+- **WHEN** the user leaves the name field blank in the right column and saves
+- **THEN** the transaction SHALL be saved with `name = null` and no validation error SHALL be shown
+
+
+<!-- @trace
+source: ui-comprehensive-redesign
+updated: 2026-04-05
+code:
+  - src/screens/transactions/TransactionSearchScreen.tsx
+  - src/navigation/LedgerStackNavigator.tsx
+  - src/navigation/MainTabNavigator.tsx
+  - src/screens/accounts/CreateAccountModal.tsx
+  - .spectra.yaml
+  - src/screens/HomeScreen.tsx
+  - src/screens/creditcards/CreateRewardRuleModal.tsx
+  - src/screens/debt/DebtTrackingScreen.tsx
+  - src/screens/settings/CategorySettingsScreen.tsx
+  - supabase/migrations/006_payer_name.sql
+  - src/components/CategoryIconButton.tsx
+  - src/screens/AssetsScreen.tsx
+  - src/screens/settings/CreateRecurringModal.tsx
+  - src/screens/settings/EditRecurringModal.tsx
+  - src/screens/transactions/AddTransactionSheet.tsx
+  - src/screens/accounts/ExchangeRateModal.tsx
+  - src/screens/transactions/EditTransactionSheet.tsx
+  - src/lib/debts.ts
+  - src/navigation/MoreStackNavigator.tsx
+  - src/screens/LedgerScreen.tsx
+  - src/components/PayerContactPicker.tsx
+  - src/lib/transactions.ts
+  - src/types/database.ts
+  - src/screens/MoreScreen.tsx
+-->
+
+---
+### Requirement: Compact payment-method segmented picker
+
+The payer type selector SHALL be rendered as a compact segmented control (three equal-width pills in a single row, height ≤ 36 pt) showing Chinese labels only: 自己付 / 別人付 / 幫人付. Individual large button rows for each payer type SHALL NOT be used.
+
+#### Scenario: Payer type displayed compactly
+
+- **WHEN** the user views the transaction entry form
+- **THEN** the three payer options SHALL appear as a single compact row of equal-width pills, not as three separate full-width buttons
+
+#### Scenario: Select payer type from segmented control
+
+- **WHEN** the user taps "別人付" in the segmented control
+- **THEN** the payer type SHALL be set to `paid_by_other` and the "代付對象" field SHALL appear below
+
+<!-- @trace
+source: ui-comprehensive-redesign
+updated: 2026-04-05
+code:
+  - src/screens/transactions/TransactionSearchScreen.tsx
+  - src/navigation/LedgerStackNavigator.tsx
+  - src/navigation/MainTabNavigator.tsx
+  - src/screens/accounts/CreateAccountModal.tsx
+  - .spectra.yaml
+  - src/screens/HomeScreen.tsx
+  - src/screens/creditcards/CreateRewardRuleModal.tsx
+  - src/screens/debt/DebtTrackingScreen.tsx
+  - src/screens/settings/CategorySettingsScreen.tsx
+  - supabase/migrations/006_payer_name.sql
+  - src/components/CategoryIconButton.tsx
+  - src/screens/AssetsScreen.tsx
+  - src/screens/settings/CreateRecurringModal.tsx
+  - src/screens/settings/EditRecurringModal.tsx
+  - src/screens/transactions/AddTransactionSheet.tsx
+  - src/screens/accounts/ExchangeRateModal.tsx
+  - src/screens/transactions/EditTransactionSheet.tsx
+  - src/lib/debts.ts
+  - src/navigation/MoreStackNavigator.tsx
+  - src/screens/LedgerScreen.tsx
+  - src/components/PayerContactPicker.tsx
+  - src/lib/transactions.ts
+  - src/types/database.ts
+  - src/screens/MoreScreen.tsx
 -->

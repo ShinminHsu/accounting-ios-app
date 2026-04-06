@@ -8,7 +8,7 @@ TBD - created by archiving change 'ios-accounting-app'. Update Purpose after arc
 
 ### Requirement: Bill upload and OCR parsing
 
-The system SHALL allow the user to upload a credit card bill as a PDF file or image screenshot. The system SHALL send the file to Gemini API (gemini-2.0-flash) and receive a structured list of line items, each containing: date (YYYY-MM-DD), merchant name, and amount in the card's currency.
+The system SHALL allow the user to upload a credit card bill as a PDF file or image screenshot. The system SHALL send the file to Gemini API (gemini-2.0-flash) and receive a structured list of line items, each containing: date (YYYY-MM-DD), merchant name, and amount in the card's currency. The upload option SHALL be presented as one of two reconciliation entry points on the idle state (alongside "手動對帳").
 
 #### Scenario: Successful bill parse
 
@@ -17,8 +17,44 @@ The system SHALL allow the user to upload a credit card bill as a PDF file or im
 
 #### Scenario: Parse fails or returns empty
 
-- **WHEN** Claude API returns an error or zero line items
+- **WHEN** Gemini API returns an error or zero line items
 - **THEN** the system SHALL display an error message and allow the user to retry or enter items manually
+
+
+<!-- @trace
+source: manual-reconciliation-mode
+updated: 2026-04-05
+code:
+  - src/screens/MoreScreen.tsx
+  - src/screens/HomeScreen.tsx
+  - supabase/migrations/006_payer_name.sql
+  - src/screens/transactions/TransactionSearchScreen.tsx
+  - src/screens/debt/DebtTrackingScreen.tsx
+  - src/components/CategoryIconButton.tsx
+  - src/screens/LedgerScreen.tsx
+  - src/screens/AssetsScreen.tsx
+  - src/screens/transactions/AddTransactionSheet.tsx
+  - src/lib/db.ts
+  - src/lib/debts.ts
+  - src/navigation/LedgerStackNavigator.tsx
+  - src/types/database.ts
+  - src/lib/reconciliation.ts
+  - src/screens/accounts/ExchangeRateModal.tsx
+  - src/components/PayerContactPicker.tsx
+  - .spectra.yaml
+  - src/lib/ledgers.ts
+  - src/screens/creditcards/CreateRewardRuleModal.tsx
+  - src/lib/transactions.ts
+  - src/navigation/MainTabNavigator.tsx
+  - src/screens/creditcards/ReconciliationScreen.tsx
+  - src/screens/transactions/EditTransactionSheet.tsx
+  - src/navigation/MoreStackNavigator.tsx
+  - src/screens/settings/EditRecurringModal.tsx
+  - src/screens/settings/CreateRecurringModal.tsx
+  - App.tsx
+  - src/screens/accounts/CreateAccountModal.tsx
+  - src/screens/settings/CategorySettingsScreen.tsx
+-->
 
 ---
 ### Requirement: Fuzzy matching against existing transactions

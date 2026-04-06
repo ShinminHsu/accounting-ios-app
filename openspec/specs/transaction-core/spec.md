@@ -8,7 +8,7 @@ TBD - created by archiving change 'ios-accounting-app'. Update Purpose after arc
 
 ### Requirement: Record a transaction
 
-The system SHALL allow the user to create a transaction with the following fields: amount (required), date (required, defaults to today), category (required), subcategory (optional), account (required), project (optional), notes (optional), and payer type (self / paid-by-other / paid-for-other).
+The system SHALL allow the user to create a transaction with the following fields: amount (required), date (required, defaults to today), category (required), subcategory (optional), account (required unless payer type is paid-by-other), ledger (optional, defaults to personal ledger represented as NULL), project (optional), notes (optional), name (optional), and payer type (self / paid-by-other / paid-for-other).
 
 #### Scenario: Record a normal expense
 
@@ -28,7 +28,52 @@ The system SHALL allow the user to create a transaction with the following field
 #### Scenario: Amount is zero or negative
 
 - **WHEN** user submits a transaction with amount ≤ 0
-- **THEN** the system SHALL reject the submission and display a validation error
+- **THEN** the system SHALL reject the transaction with error "請輸入有效金額"
+
+#### Scenario: Transaction recorded in shared ledger
+
+- **WHEN** user selects a shared ledger and submits the transaction
+- **THEN** the transaction is stored with `ledger_id` set to the shared ledger ID; it appears in the shared ledger view but not in the personal ledger view
+
+
+<!-- @trace
+source: shared-ledger
+updated: 2026-04-06
+code:
+  - src/screens/ledgers/LedgersScreen.tsx
+  - src/lib/db.ts
+  - src/screens/accounts/CreateAccountModal.tsx
+  - src/screens/transactions/AddTransactionSheet.tsx
+  - src/screens/settings/CategorySettingsScreen.tsx
+  - App.tsx
+  - src/screens/creditcards/CreateRewardRuleModal.tsx
+  - src/screens/ledgers/LedgerDetailScreen.tsx
+  - src/screens/settings/EditRecurringModal.tsx
+  - src/screens/HomeScreen.tsx
+  - src/lib/debts.ts
+  - src/screens/ledgers/LedgerMembersScreen.tsx
+  - src/navigation/LedgerStackNavigator.tsx
+  - .spectra.yaml
+  - src/screens/settings/CreateRecurringModal.tsx
+  - src/screens/LedgerScreen.tsx
+  - src/screens/ledgers/CreateLedgerModal.tsx
+  - src/navigation/MoreStackNavigator.tsx
+  - src/screens/transactions/EditTransactionSheet.tsx
+  - src/screens/accounts/ExchangeRateModal.tsx
+  - src/screens/MoreScreen.tsx
+  - src/lib/transactions.ts
+  - src/screens/AssetsScreen.tsx
+  - src/types/database.ts
+  - src/components/CategoryIconButton.tsx
+  - src/screens/transactions/TransactionSearchScreen.tsx
+  - src/navigation/MainTabNavigator.tsx
+  - src/screens/debt/DebtTrackingScreen.tsx
+  - supabase/migrations/006_payer_name.sql
+  - src/lib/reconciliation.ts
+  - src/lib/ledgers.ts
+  - src/components/PayerContactPicker.tsx
+  - src/screens/creditcards/ReconciliationScreen.tsx
+-->
 
 ---
 ### Requirement: Edit a transaction

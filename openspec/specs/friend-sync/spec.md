@@ -8,22 +8,39 @@ TBD - created by archiving change 'ios-accounting-app'. Update Purpose after arc
 
 ### Requirement: Friend relationship
 
-The system SHALL allow the user to add another app user as a friend by searching their registered email. A friendship SHALL be bilateral: both parties must accept before shared transactions can flow between them. The system SHALL support multiple independent friend relationships simultaneously.
+The system SHALL allow the user to add another app user as a friend by entering their 6-character invite code. A friendship SHALL be bilateral: both parties must accept before shared transactions can flow between them. The system SHALL support multiple independent friend relationships simultaneously.
 
-#### Scenario: Send friend request
+#### Scenario: Send friend request by invite code
 
-- **WHEN** user searches an email and sends a friend request
+- **WHEN** user enters a valid 6-character invite code and taps "送出邀請"
 - **THEN** the system SHALL create a pending friendship record; the recipient SHALL receive a push notification
 
-#### Scenario: Accept friend request
 
-- **WHEN** recipient accepts the friend request
-- **THEN** the system SHALL mark the friendship as active and enable shared transaction sync between both users
-
-#### Scenario: Search email not found
-
-- **WHEN** user searches an email that has no registered account
-- **THEN** the system SHALL display "No account found with that email"
+<!-- @trace
+source: anonymous-auth-and-invite-code
+updated: 2026-04-06
+code:
+  - src/screens/ledgers/LedgerMembersScreen.tsx
+  - src/screens/ledgers/CreateLedgerModal.tsx
+  - src/lib/ledgers.ts
+  - src/navigation/AuthNavigator.tsx
+  - src/lib/db.ts
+  - src/navigation/MoreStackNavigator.tsx
+  - src/types/database.ts
+  - src/lib/auth.ts
+  - src/screens/ledgers/LedgerDetailScreen.tsx
+  - src/screens/auth/RegisterScreen.tsx
+  - src/contexts/InviteCodeContext.tsx
+  - src/screens/auth/LoginScreen.tsx
+  - src/screens/friends/FriendsScreen.tsx
+  - src/screens/MoreScreen.tsx
+  - App.tsx
+  - src/screens/ledgers/LedgersScreen.tsx
+  - src/lib/friends.ts
+  - src/screens/transactions/AddTransactionSheet.tsx
+  - src/lib/transactions.ts
+  - src/screens/auth/ResetPasswordScreen.tsx
+-->
 
 ---
 ### Requirement: Shared transaction sync
