@@ -23,7 +23,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
-  const [signInError, setSignInError] = useState(false);
+  const [signInError, setSignInError] = useState<string | null>(null);
   const [dbReady, setDbReady] = useState(false);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
 
@@ -33,11 +33,11 @@ export default function App() {
 
   async function doAnonymousSignIn() {
     setSigningIn(true);
-    setSignInError(false);
+    setSignInError(null);
     const { error } = await signInAnonymously();
     if (error) {
       setSigningIn(false);
-      setSignInError(true);
+      setSignInError(error.message);
       setLoading(false);
     }
     // On success, onAuthStateChange fires with the new session
@@ -96,8 +96,9 @@ export default function App() {
   if (signInError) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>無法連線，請檢查網路後重試</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={doAnonymousSignIn} disabled={signingIn}>
+        <Text style={styles.errorText}>登入失敗，請重試</Text>
+        <Text style={[styles.errorText, { fontSize: 12, opacity: 0.6, marginTop: -16 }]}>{signInError}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={doAnonymousSignIn} disabled={signingIn === true}>
           {signingIn
             ? <ActivityIndicator color={colors.white} />
             : <Text style={styles.retryBtnText}>重試</Text>}
