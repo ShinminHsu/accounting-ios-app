@@ -85,15 +85,15 @@ export function MoreStackNavigator() {
       />
       <Stack.Screen
         name="LedgerDetailScreen"
-        options={({ route }) => ({ title: route.params.ledger.name })}
+        options={({ route }: { route: { params: { ledger: Ledger } } }) => ({ title: route.params.ledger.name })}
       >
-        {({ route }) => <LedgerDetailScreen ledger={route.params.ledger} />}
+        {({ route }: { route: { params: { ledger: Ledger } } }) => <LedgerDetailScreen ledger={route.params.ledger} />}
       </Stack.Screen>
       <Stack.Screen
         name="LedgerMembersScreen"
         options={{ title: '帳本成員' }}
       >
-        {({ route }) => <LedgerMembersScreen ledger={route.params.ledger} />}
+        {({ route }: { route: { params: { ledger: Ledger } } }) => <LedgerMembersScreen ledger={route.params.ledger} />}
       </Stack.Screen>
     </Stack.Navigator>
   );

@@ -149,7 +149,7 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
           const yearMonth = date.toISOString().slice(0, 7);
           await accumulateTransactionReward(
             session.user.id, rewardPreview.ruleId, rewardPreview.earnedAmount,
-            yearMonth, cc.id, rewardPreview.rewardType,
+            yearMonth, cc.id, rewardPreview.rewardType!,
           );
         }
       }
@@ -161,16 +161,16 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
             if (c.id === selectedCategoryId) return true;
             return c.children.some((ch) => ch.id === selectedCategoryId);
           })?.name ?? null;
-          await writeSharedTransaction({
-            payerId: session.user.id,
-            payeeId: friendship.friendUserId,
-            amount: parsed,
-            currency: accounts.find((a) => a.id === selectedAccountId)?.currency ?? 'TWD',
-            date: date.toISOString().slice(0, 10),
-            categoryName: catName,
+          await writeSharedTransaction(
+            session.user.id,
+            friendship.friendUserId,
+            parsed,
+            accounts.find((a) => a.id === selectedAccountId)?.currency ?? 'TWD',
+            date.toISOString().slice(0, 10),
+            catName,
             notes,
-            sourceTransactionId: savedTxn.id,
-          });
+            savedTxn.id,
+          );
         }
       }
 
@@ -430,14 +430,14 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
               <View style={styles.rewardBanner}>
                 {rewardPreview.thresholdNotMet ? (
                   <Text style={styles.rewardText}>未達最低消費門檻，無回饋</Text>
-                ) : rewardPreview.capReached ? (
+                ) : rewardPreview.isCapReached ? (
                   <Text style={styles.rewardText}>本月回饋上限已達</Text>
                 ) : (
                   <Text style={styles.rewardText}>
                     回饋：{rewardPreview.rewardType === 'cashback_offset'
                       ? `NT$ ${rewardPreview.earnedAmount.toFixed(1)} 現金回饋`
                       : rewardPreview.rewardType === 'points'
-                      ? `${rewardPreview.earnedAmount.toFixed(0)} 點（≈ NT$ ${rewardPreview.twdEquiv?.toFixed(0)}）`
+                      ? `${rewardPreview.earnedAmount.toFixed(0)} 點`
                       : `NT$ ${rewardPreview.earnedAmount.toFixed(1)} 入帳回饋`}
                   </Text>
                 )}
@@ -655,7 +655,7 @@ const picker = StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
+    borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg,
     maxHeight: '75%',
     ...shadows.lg,
   },

@@ -305,12 +305,14 @@ export async function handleIncomingSharedTransaction(
   await createTransaction(userId, {
     amount: sharedTxn.amount,
     date: sharedTxn.date,
+    name: null,
     categoryId: null,
     accountId: null,
     projectId: null,
     notes: sharedTxn.notes ?? sharedTxn.category_name ?? '好友代付',
     payerType: 'paid_by_other',
     contactId,
+    payerName: null,
     isIncome: false,
   });
 

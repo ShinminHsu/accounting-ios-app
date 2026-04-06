@@ -161,9 +161,10 @@ export async function generateDueInstances(userId: string): Promise<GeneratedRec
 
       await createTransaction(userId, {
         amount: tmpl.amount, date: dateStr,
+        name: null,
         categoryId: tmpl.category_id, accountId: tmpl.account_id,
         projectId: tmpl.project_id, notes: tmpl.notes ?? '',
-        payerType, contactId: tmpl.contact_id, isIncome,
+        payerType, contactId: tmpl.contact_id, payerName: null, isIncome,
       });
 
       created.push({ date: dateStr, templateId: tmpl.id, amount: tmpl.amount, categoryName: tmpl.category_name ?? null });

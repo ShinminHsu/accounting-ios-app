@@ -89,7 +89,7 @@ export function ExchangeRateModal({ visible, currentRates, onClose, onSaved }: P
           </View>
         </View>
       </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

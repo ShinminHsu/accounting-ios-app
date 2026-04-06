@@ -1,5 +1,6 @@
 import { getDb, generateUUID } from './db';
 import { BillStatus, CreditCardBill, PendingDebit } from '../types/database';
+export type { CreditCardBill };
 import { createTransaction } from './transactions';
 import * as FileSystem from 'expo-file-system';
 
@@ -282,9 +283,10 @@ export async function executePendingDebits(userId: string): Promise<void> {
   for (const debit of debits) {
     await createTransaction(userId, {
       amount: debit.amount, date: today,
+      name: null,
       categoryId: null, accountId: debit.source_account_id,
       projectId: null, notes: '信用卡帳款自動扣繳',
-      payerType: 'self', contactId: null, isIncome: false,
+      payerType: 'self', contactId: null, payerName: null, isIncome: false,
     });
     await db.runAsync(
       `UPDATE pending_debits SET status='executed', executed_at=? WHERE id=?`,

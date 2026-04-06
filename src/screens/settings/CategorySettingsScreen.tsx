@@ -13,6 +13,7 @@ import {
 import { CATEGORY_ICON_MAP } from '../../lib/categoryIcons';
 import { Category } from '../../types/database';
 import { CategoryIconButton } from '../../components/CategoryIconButton';
+import { CategoryIcon } from '../../components/CategoryIcon';
 import { colors, typography, spacing, radius } from '../../theme';
 
 export function CategorySettingsScreen() {

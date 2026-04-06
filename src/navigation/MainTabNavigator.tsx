@@ -88,10 +88,11 @@ export function MainTabNavigator() {
             ),
             tabBarButton: (props) => (
               <TouchableOpacity
-                {...props}
                 style={styles.centerTabButton}
                 activeOpacity={0.8}
                 onPress={() => setShowAddSheet(true)}
+                accessibilityRole={props.accessibilityRole}
+                accessibilityLabel={props.accessibilityLabel}
               />
             ),
           }}

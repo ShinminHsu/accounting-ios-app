@@ -243,8 +243,9 @@ export async function markDepositReceived(
 ): Promise<{ error: string | null }> {
   const { error } = await createTransaction(userId, {
     amount, date: new Date().toISOString().slice(0, 10),
+    name: null,
     categoryId: null, accountId: depositAccountId, projectId: null,
-    notes: '信用卡回饋入帳', payerType: 'self', contactId: null, isIncome: true,
+    notes: '信用卡回饋入帳', payerType: 'self', contactId: null, payerName: null, isIncome: true,
   });
   if (error) return { error };
 
