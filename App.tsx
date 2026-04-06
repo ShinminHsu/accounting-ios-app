@@ -38,6 +38,7 @@ export default function App() {
     if (error) {
       setSigningIn(false);
       setSignInError(true);
+      setLoading(false);
     }
     // On success, onAuthStateChange fires with the new session
   }
