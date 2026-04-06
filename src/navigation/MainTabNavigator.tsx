@@ -93,7 +93,9 @@ export function MainTabNavigator() {
                 onPress={() => setShowAddSheet(true)}
                 accessibilityRole={props.accessibilityRole}
                 accessibilityLabel={props.accessibilityLabel}
-              />
+              >
+                {props.children}
+              </TouchableOpacity>
             ),
           }}
         />

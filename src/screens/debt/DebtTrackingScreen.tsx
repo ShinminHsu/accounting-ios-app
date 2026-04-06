@@ -24,12 +24,17 @@ export function DebtTrackingScreen() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setLoading(false); return; }
-    setUserId(session.user.id);
-    const data = await fetchDebtSummaryByContact(session.user.id);
-    setSummaries(data);
-    setLoading(false);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      setUserId(session.user.id);
+      const data = await fetchDebtSummaryByContact(session.user.id);
+      setSummaries(data);
+    } catch (e) {
+      console.error('DebtTrackingScreen load error:', e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
