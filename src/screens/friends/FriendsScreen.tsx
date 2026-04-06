@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import {
   fetchFriendships, sendFriendRequest, acceptFriendRequest,
-  declineFriendRequest, removeFriend, searchUserByEmail,
+  declineFriendRequest, removeFriend, searchUserByInviteCode,
   FriendWithContact,
 } from '../../lib/friends';
 import { colors, typography, spacing, radius } from '../../theme';
@@ -155,23 +155,23 @@ function AddFriendModal({
   onClose: () => void;
   onSent: () => void;
 }) {
-  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [searching, setSearching] = useState(false);
-  const [foundUser, setFoundUser] = useState<{ id: string; email: string; display_name: string | null } | null>(null);
+  const [foundUser, setFoundUser] = useState<{ id: string; invite_code: string; display_name: string | null } | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [sending, setSending] = useState(false);
 
   function reset() {
-    setEmail(''); setFoundUser(null); setNotFound(false); setSending(false);
+    setCode(''); setFoundUser(null); setNotFound(false); setSending(false);
   }
 
   async function handleSearch() {
-    if (!email.trim()) return;
+    if (code.length < 6) return;
     setSearching(true); setFoundUser(null); setNotFound(false);
-    const user = await searchUserByEmail(email.trim());
+    const user = await searchUserByInviteCode(code);
     setSearching(false);
     if (!user) { setNotFound(true); return; }
-    if (user.id === userId) { Alert.alert('', '無法新增自己為好友'); return; }
+    if (user.id === userId) { Alert.alert('', '不能加自己為好友'); return; }
     setFoundUser(user);
   }
 
@@ -197,18 +197,26 @@ function AddFriendModal({
         </View>
 
         <View style={styles.searchBody}>
-          <Text style={styles.label}>搜尋 Email</Text>
+          <Text style={styles.label}>輸入邀請碼</Text>
           <View style={styles.searchRow}>
             <TextInput
-              style={styles.searchInput}
-              value={email}
-              onChangeText={(v) => { setEmail(v); setFoundUser(null); setNotFound(false); }}
-              placeholder="輸入對方的 Email"
+              style={[styles.searchInput, styles.codeInput]}
+              value={code}
+              onChangeText={(v) => {
+                setCode(v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6));
+                setFoundUser(null);
+                setNotFound(false);
+              }}
+              placeholder="A3K9MZ"
               placeholderTextColor={colors.textSecondary}
-              keyboardType="email-address"
-              autoCapitalize="none"
+              autoCapitalize="characters"
+              maxLength={6}
             />
-            <TouchableOpacity style={styles.searchBtn} onPress={handleSearch} disabled={searching}>
+            <TouchableOpacity
+              style={[styles.searchBtn, code.length < 6 && styles.searchBtnDisabled]}
+              onPress={handleSearch}
+              disabled={searching || code.length < 6}
+            >
               {searching
                 ? <ActivityIndicator color={colors.white} size="small" />
                 : <Text style={styles.searchBtnText}>搜尋</Text>}
@@ -216,19 +224,19 @@ function AddFriendModal({
           </View>
 
           {notFound && (
-            <Text style={styles.notFound}>找不到此 Email 對應的帳號</Text>
+            <Text style={styles.notFound}>找不到此邀請碼對應的用戶</Text>
           )}
 
           {foundUser && (
             <View style={styles.foundCard}>
               <View style={styles.foundInfo}>
-                <Text style={styles.name}>{foundUser.display_name ?? foundUser.email}</Text>
-                <Text style={styles.email}>{foundUser.email}</Text>
+                <Text style={styles.name}>{foundUser.display_name ?? '好友'}</Text>
+                <Text style={styles.email}>邀請碼：{foundUser.invite_code}</Text>
               </View>
               <TouchableOpacity style={styles.sendBtn} onPress={handleSend} disabled={sending}>
                 {sending
                   ? <ActivityIndicator color={colors.white} size="small" />
-                  : <Text style={styles.sendBtnText}>發送邀請</Text>}
+                  : <Text style={styles.sendBtnText}>送出邀請</Text>}
               </TouchableOpacity>
             </View>
           )}
@@ -279,7 +287,9 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md, color: colors.text, backgroundColor: colors.surface,
   },
   searchBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.primary, borderRadius: radius.sm },
+  searchBtnDisabled: { opacity: 0.45 },
   searchBtnText: { color: colors.white, fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold },
+  codeInput: { fontFamily: 'Courier', letterSpacing: 4, textTransform: 'uppercase' },
   notFound: { fontSize: typography.sizes.sm, color: colors.expense, marginTop: spacing.sm },
   foundCard: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,

@@ -8,6 +8,7 @@ export type TransactionInput = {
   categoryId: string | null;
   accountId: string | null;
   projectId: string | null;
+  ledgerId?: string | null;
   notes: string;
   payerType: PayerType;
   contactId: string | null;
@@ -25,6 +26,7 @@ function rowToTransaction(row: any): Transaction {
     category_id: row.category_id ?? null,
     account_id: row.account_id ?? null,
     project_id: row.project_id ?? null,
+    ledger_id: row.ledger_id ?? null,
     notes: row.notes ?? null,
     payer_type: row.payer_type as PayerType,
     contact_id: row.contact_id ?? null,
@@ -47,12 +49,13 @@ export async function createTransaction(
 
   await db.runAsync(
     `INSERT INTO transactions
-     (id, user_id, amount, date, name, category_id, account_id, project_id, notes, payer_type, contact_id, payer_name, is_income, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, user_id, amount, date, name, category_id, account_id, project_id, ledger_id, notes, payer_type, contact_id, payer_name, is_income, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id, userId, input.amount, input.date,
       input.name ?? null,
       input.categoryId ?? null, accountId ?? null, input.projectId ?? null,
+      input.ledgerId ?? null,
       input.notes || null, input.payerType, input.contactId ?? null,
       input.payerName ?? null,
       input.isIncome ? 1 : 0, now, now,
@@ -135,11 +138,19 @@ export type TransactionWithRefs = Transaction & {
 export async function fetchTransactionsForMonth(
   userId: string,
   year: number,
-  month: number
+  month: number,
+  ledgerId?: string | null
 ): Promise<TransactionWithRefs[]> {
   const db = await getDb();
   const start = `${year}-${String(month).padStart(2, '0')}-01`;
   const end = new Date(year, month, 0).toISOString().slice(0, 10);
+
+  const ledgerClause = ledgerId != null
+    ? 'AND t.ledger_id = ?'
+    : 'AND t.ledger_id IS NULL';
+  const params: any[] = ledgerId != null
+    ? [userId, start, end, ledgerId]
+    : [userId, start, end];
 
   const rows = await db.getAllAsync<any>(
     `SELECT t.*,
@@ -150,9 +161,9 @@ export async function fetchTransactionsForMonth(
      LEFT JOIN categories c ON t.category_id = c.id
      LEFT JOIN accounts a ON t.account_id = a.id
      LEFT JOIN contacts co ON t.contact_id = co.id
-     WHERE t.user_id = ? AND t.date >= ? AND t.date <= ?
+     WHERE t.user_id = ? AND t.date >= ? AND t.date <= ? ${ledgerClause}
      ORDER BY t.date DESC, t.created_at DESC`,
-    [userId, start, end]
+    params
   );
 
   return rows.map((row) => ({

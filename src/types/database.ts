@@ -84,6 +84,7 @@ export interface Transaction {
   category_id: string | null;
   account_id: string | null;
   project_id: string | null;
+  ledger_id: string | null;
   notes: string | null;
   payer_type: PayerType;
   contact_id: string | null;
@@ -230,6 +231,26 @@ export interface Friendship {
   status: FriendshipStatus;
   created_at: string;
   updated_at: string;
+}
+
+export interface Ledger {
+  id: string;
+  owner_user_id: string;
+  name: string;
+  is_personal: boolean;
+  start_date: string | null;
+  end_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LedgerMember {
+  id: string;
+  ledger_id: string;
+  user_id: string;
+  status: 'invited' | 'active';
+  joined_at: string | null;
+  created_at: string;
 }
 
 export interface SharedTransaction {

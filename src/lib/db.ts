@@ -266,6 +266,32 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       UPDATE categories SET emoji = 'Package'       WHERE is_default = 1 AND name = '其他';
     `,
   },
+  {
+    name: '004_ledgers',
+    sql: `
+      CREATE TABLE IF NOT EXISTS ledgers (
+        id TEXT PRIMARY KEY NOT NULL,
+        owner_user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        is_personal INTEGER NOT NULL DEFAULT 0,
+        start_date TEXT,
+        end_date TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS ledger_members (
+        id TEXT PRIMARY KEY NOT NULL,
+        ledger_id TEXT NOT NULL REFERENCES ledgers(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'invited',
+        joined_at TEXT,
+        created_at TEXT NOT NULL
+      );
+
+      ALTER TABLE transactions ADD COLUMN ledger_id TEXT REFERENCES ledgers(id) ON DELETE SET NULL;
+    `,
+  },
 ];
 
 // ---------------------------------------------------------------------------

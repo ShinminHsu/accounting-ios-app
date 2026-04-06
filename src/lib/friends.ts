@@ -17,13 +17,13 @@ export type FriendWithContact = {
 
 // ── User lookup ──────────────────────────────────────────────────────────────
 
-export async function searchUserByEmail(
-  email: string
-): Promise<{ id: string; email: string; display_name: string | null } | null> {
+export async function searchUserByInviteCode(
+  code: string
+): Promise<{ id: string; invite_code: string; display_name: string | null } | null> {
   const { data } = await supabase
     .from('users')
-    .select('id, email, display_name')
-    .eq('email', email.trim().toLowerCase())
+    .select('id, invite_code, display_name')
+    .eq('invite_code', code.toUpperCase().trim())
     .single();
   return data ?? null;
 }

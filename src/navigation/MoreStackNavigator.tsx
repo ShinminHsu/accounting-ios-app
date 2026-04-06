@@ -8,6 +8,10 @@ import { RecurringTemplatesScreen } from '../screens/settings/RecurringTemplates
 import { DebtTrackingScreen } from '../screens/debt/DebtTrackingScreen';
 import { FriendsScreen } from '../screens/friends/FriendsScreen';
 import { ReportsScreen } from '../screens/reports/ReportsScreen';
+import { LedgersScreen } from '../screens/ledgers/LedgersScreen';
+import { LedgerDetailScreen } from '../screens/ledgers/LedgerDetailScreen';
+import { LedgerMembersScreen } from '../screens/ledgers/LedgerMembersScreen';
+import { Ledger } from '../types/database';
 
 export type MoreStackParamList = {
   MoreHome: undefined;
@@ -17,6 +21,9 @@ export type MoreStackParamList = {
   DebtTrackingScreen: undefined;
   FriendsScreen: undefined;
   ReportsScreen: undefined;
+  LedgersScreen: undefined;
+  LedgerDetailScreen: { ledger: Ledger };
+  LedgerMembersScreen: { ledger: Ledger };
 };
 
 const Stack = createNativeStackNavigator<MoreStackParamList>();
@@ -71,6 +78,23 @@ export function MoreStackNavigator() {
         component={ReportsScreen}
         options={{ title: '報表' }}
       />
+      <Stack.Screen
+        name="LedgersScreen"
+        component={LedgersScreen}
+        options={{ title: '帳本' }}
+      />
+      <Stack.Screen
+        name="LedgerDetailScreen"
+        options={({ route }) => ({ title: route.params.ledger.name })}
+      >
+        {({ route }) => <LedgerDetailScreen ledger={route.params.ledger} />}
+      </Stack.Screen>
+      <Stack.Screen
+        name="LedgerMembersScreen"
+        options={{ title: '帳本成員' }}
+      >
+        {({ route }) => <LedgerMembersScreen ledger={route.params.ledger} />}
+      </Stack.Screen>
     </Stack.Navigator>
   );
 }

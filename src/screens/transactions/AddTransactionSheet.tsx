@@ -6,7 +6,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  CalendarDays, ChevronRight, X, Tag,
+  CalendarDays, ChevronRight, X, Tag, Users,
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { createTransaction } from '../../lib/transactions';
@@ -19,9 +19,10 @@ import {
   RewardPreview,
 } from '../../lib/rewards';
 import { getActiveFriendship, writeSharedTransaction } from '../../lib/friends';
+import { fetchLedgers } from '../../lib/ledgers';
 import { CategoryIcon } from '../../components/CategoryIcon';
 import { PayerContactPicker } from '../../components/PayerContactPicker';
-import { Contact, PayerType } from '../../types/database';
+import { Contact, Ledger, PayerType } from '../../types/database';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 
 type Props = {
@@ -52,6 +53,9 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
   const [notes, setNotes] = useState('');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
+  const [ledgerId, setLedgerId] = useState<string | null>(null);
+  const [ledgers, setLedgers] = useState<{ active: Ledger[]; invited: Ledger[] }>({ active: [], invited: [] });
+
   const [categories, setCategories] = useState<CategoryWithChildren[]>([]);
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -65,16 +69,18 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const [cats, accs, ctcts, projs] = await Promise.all([
+      const [cats, accs, ctcts, projs, ldgrs] = await Promise.all([
         fetchCategories(session.user.id),
         fetchAccounts(session.user.id),
         fetchContacts(session.user.id),
         fetchActiveProjects(session.user.id),
+        fetchLedgers(session.user.id),
       ]);
       setCategories(cats);
       setAccounts(accs);
       setContacts(ctcts);
       setProjects(projs);
+      setLedgers(ldgrs);
       if (accs.length > 0 && !selectedAccountId) setSelectedAccountId(accs[0].id);
       if (selectedCategoryId) {
         const parent = cats.find((p) => p.children.some((ch) => ch.id === selectedCategoryId));
@@ -103,7 +109,7 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
     setPayerType('self'); setSelectedCategoryId(null);
     setSelectedAccountId(null); setSelectedContactId(null);
     setPayerName(''); setShowPayerPicker(false);
-    setSelectedProjectId(null); setNotes(''); setExpandedCategory(null);
+    setSelectedProjectId(null); setLedgerId(null); setNotes(''); setExpandedCategory(null);
     setRewardPreview(null); setShowCategoryPicker(false);
   }
 
@@ -127,6 +133,7 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
         categoryId: selectedCategoryId,
         accountId: selectedAccountId,
         projectId: selectedProjectId,
+        ledgerId,
         notes,
         payerType,
         contactId: selectedContactId,
@@ -307,6 +314,30 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
                       </Text>
                     </TouchableOpacity>
                   ))}
+                </View>
+              </View>
+            )}
+
+            {/* Ledger selector — shown only when user has > 1 active ledger */}
+            {ledgers.active.length > 1 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>帳本（選填）</Text>
+                <View style={styles.chipRow}>
+                  {ledgers.active.map((l) => {
+                    const active = ledgerId === l.id || (ledgerId === null && l.is_personal);
+                    return (
+                      <TouchableOpacity
+                        key={l.id}
+                        style={[styles.chip, active && styles.chipActive, !l.is_personal && { flexDirection: 'row', alignItems: 'center' }]}
+                        onPress={() => setLedgerId(l.is_personal ? null : l.id)}
+                      >
+                        {!l.is_personal && (
+                          <Users size={11} color={active ? colors.white : colors.textSecondary} style={{ marginRight: 4 }} />
+                        )}
+                        <Text style={[styles.chipText, active && styles.chipTextActive]}>{l.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
             )}
