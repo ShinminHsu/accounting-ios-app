@@ -502,31 +502,27 @@ export function AddTransactionSheet({ visible, onClose, onSaved }: Props) {
                       )}
                     </TouchableOpacity>
 
-                    {/* Children grid */}
-                    {expandedCategory === parent.id && (
-                      <View style={picker.childGrid}>
-                        {parent.children.map((child) => {
-                          const active = selectedCategoryId === child.id;
-                          return (
-                            <TouchableOpacity
-                              key={child.id}
-                              style={[picker.childItem, active && picker.childItemActive]}
-                              onPress={() => selectCategory(child.id)}
-                            >
-                              <CategoryIcon
-                                iconKey={child.emoji}
-                                size={15}
-                                color={active ? colors.primary : colors.textSecondary}
-                                containerSize={28}
-                              />
-                              <Text style={[picker.childName, active && picker.nameSelected]} numberOfLines={1}>
-                                {child.name}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
-                    )}
+                    {/* Children list */}
+                    {expandedCategory === parent.id && parent.children.map((child) => {
+                      const active = selectedCategoryId === child.id;
+                      return (
+                        <TouchableOpacity
+                          key={child.id}
+                          style={[picker.childRow, active && picker.rowSelected]}
+                          onPress={() => selectCategory(child.id)}
+                        >
+                          <CategoryIcon
+                            iconKey={child.emoji}
+                            size={15}
+                            color={active ? colors.primary : colors.textSecondary}
+                            containerSize={28}
+                          />
+                          <Text style={[picker.childName, active && picker.nameSelected]}>
+                            {child.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 ))}
               </ScrollView>
@@ -677,17 +673,10 @@ const picker = StyleSheet.create({
   rowSelected: { backgroundColor: colors.primary + '08' },
   parentName: { flex: 1, fontSize: typography.sizes.md, color: colors.text, fontWeight: typography.weights.medium },
   nameSelected: { color: colors.primary },
-  childGrid: {
-    flexDirection: 'row', flexWrap: 'wrap',
-    paddingHorizontal: spacing.md, paddingBottom: spacing.sm, gap: spacing.xs,
-    marginLeft: 52,
+  childRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2,
+    paddingLeft: spacing.md + 36 + spacing.sm,
   },
-  childItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: spacing.sm, paddingVertical: 6,
-    borderRadius: radius.full, borderWidth: 1, borderColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  childItemActive: { borderColor: colors.primary, backgroundColor: colors.primary + '10' },
-  childName: { fontSize: typography.sizes.sm, color: colors.text },
+  childName: { flex: 1, fontSize: typography.sizes.sm, color: colors.text },
 });
