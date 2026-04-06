@@ -167,7 +167,7 @@ export function CreateAccountModal({ visible, bankAccounts, onClose, onCreated }
           </View>
         </View>
       </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
