@@ -125,12 +125,63 @@ export async function createCreditCardSettings(
   return { error: null };
 }
 
-export async function updateAccount(id: string, name: string): Promise<{ error: string | null }> {
+export type UpdateAccountFields = {
+  name?: string;
+  currency?: string;
+  closing_day?: number;
+  due_day?: number;
+  auto_debit_account_id?: string | null;
+};
+
+export async function fetchCreditCardSettings(accountId: string): Promise<{
+  statement_closing_day: number;
+  payment_due_day: number;
+  auto_debit_account_id: string | null;
+} | null> {
   const db = await getDb();
-  await db.runAsync(
-    'UPDATE accounts SET name = ?, updated_at = ? WHERE id = ?',
-    [name, new Date().toISOString(), id]
+  return db.getFirstAsync<{
+    statement_closing_day: number;
+    payment_due_day: number;
+    auto_debit_account_id: string | null;
+  }>(
+    'SELECT statement_closing_day, payment_due_day, auto_debit_account_id FROM credit_cards WHERE account_id = ?',
+    [accountId]
   );
+}
+
+export async function updateAccount(
+  accountId: string,
+  fields: UpdateAccountFields
+): Promise<{ error: string | null }> {
+  const db = await getDb();
+  const existing = await db.getFirstAsync<{ id: string }>(
+    'SELECT id FROM accounts WHERE id = ?',
+    [accountId]
+  );
+  if (!existing) return { error: '找不到此帳戶' };
+
+  const now = new Date().toISOString();
+
+  const accCols: string[] = [];
+  const accVals: (string | number | null)[] = [];
+  if (fields.name !== undefined) { accCols.push('name = ?'); accVals.push(fields.name); }
+  if (fields.currency !== undefined) { accCols.push('currency = ?'); accVals.push(fields.currency); }
+  accCols.push('updated_at = ?');
+  accVals.push(now, accountId);
+  await db.runAsync(`UPDATE accounts SET ${accCols.join(', ')} WHERE id = ?`, accVals);
+
+  const hasCcFields = fields.closing_day !== undefined || fields.due_day !== undefined || fields.auto_debit_account_id !== undefined;
+  if (hasCcFields) {
+    const ccCols: string[] = [];
+    const ccVals: (string | number | null)[] = [];
+    if (fields.closing_day !== undefined) { ccCols.push('statement_closing_day = ?'); ccVals.push(fields.closing_day); }
+    if (fields.due_day !== undefined) { ccCols.push('payment_due_day = ?'); ccVals.push(fields.due_day); }
+    if (fields.auto_debit_account_id !== undefined) { ccCols.push('auto_debit_account_id = ?'); ccVals.push(fields.auto_debit_account_id); }
+    ccCols.push('updated_at = ?');
+    ccVals.push(now, accountId);
+    await db.runAsync(`UPDATE credit_cards SET ${ccCols.join(', ')} WHERE account_id = ?`, ccVals);
+  }
+
   return { error: null };
 }
 

@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import {
   fetchAccounts, fetchExchangeRates, convertToTWD, AccountWithBalance, ACCOUNT_TYPE_LABELS,
 } from '../lib/accounts';
+import { EditAccountModal } from './accounts/EditAccountModal';
 import { fetchOutstandingTotals } from '../lib/debts';
 import { AccountType } from '../types/database';
 import { colors, typography, spacing, radius, shadows } from '../theme';
@@ -38,6 +39,7 @@ export function AssetsScreen() {
   const [borrowed, setBorrowed] = useState(0);
   const [loading, setLoading] = useState(true);
   const [hidden, setHidden] = useState(false);
+  const [editTarget, setEditTarget] = useState<AccountWithBalance | null>(null);
 
   // Which account type groups are expanded
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
@@ -200,7 +202,7 @@ export function AssetsScreen() {
                 const signColor = isCredit ? colors.expense : colors.text;
 
                 return (
-                  <View key={acc.id} style={styles.accountRow}>
+                  <TouchableOpacity key={acc.id} style={styles.accountRow} onPress={() => setEditTarget(acc)} activeOpacity={0.7}>
                     <View style={styles.accountInfo}>
                       <Text style={styles.accountName}>{acc.name}</Text>
                       {acc.type === 'credit_card' && !hidden && (
@@ -212,7 +214,8 @@ export function AssetsScreen() {
                     <Text style={[styles.accountBalance, { color: signColor }]}>
                       {isCredit ? `-${balanceStr}` : balanceStr}
                     </Text>
-                  </View>
+                    <ChevronRight size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+                  </TouchableOpacity>
                 );
               })}
             </View>
@@ -221,6 +224,14 @@ export function AssetsScreen() {
 
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
+
+      <EditAccountModal
+        visible={!!editTarget}
+        account={editTarget}
+        bankAccounts={accounts.filter((a) => a.type === 'bank')}
+        onClose={() => setEditTarget(null)}
+        onSaved={() => { setEditTarget(null); load(); }}
+      />
     </SafeAreaView>
   );
 }
