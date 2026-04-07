@@ -292,6 +292,13 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       ALTER TABLE transactions ADD COLUMN ledger_id TEXT REFERENCES ledgers(id) ON DELETE SET NULL;
     `,
   },
+  {
+    name: '005_payer_name',
+    sql: `
+      ALTER TABLE transactions ADD COLUMN payer_name TEXT;
+      ALTER TABLE debt_records ADD COLUMN payer_name TEXT;
+    `,
+  },
 ];
 
 // ---------------------------------------------------------------------------
