@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Alert, ActivityIndicator, FlatList, Animated,
 } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -343,32 +344,49 @@ function TransactionRow({
   const amountColor = txn.is_income ? colors.income : colors.expense;
   const sign = txn.is_income ? '+' : '-';
   const payerTag = PAYER_LABELS[txn.payer_type];
+  const swipeRef = useRef<Swipeable>(null);
+
+  function renderRightActions() {
+    return (
+      <TouchableOpacity
+        style={rowStyles.deleteAction}
+        onPress={() => {
+          swipeRef.current?.close();
+          onDelete();
+        }}
+      >
+        <Text style={rowStyles.deleteActionText}>刪除</Text>
+      </TouchableOpacity>
+    );
+  }
 
   return (
-    <TouchableOpacity style={rowStyles.row} onPress={onEdit} onLongPress={onDelete} activeOpacity={0.7}>
-      <CategoryIcon
-        iconKey={txn.category_emoji}
-        size={16}
-        color={colors.primary}
-        bgColor={colors.primary + '14'}
-        containerSize={36}
-      />
-      <View style={rowStyles.info}>
-        <Text style={rowStyles.category} numberOfLines={1}>
-          {txn.name ?? txn.category_name ?? '未分類'}
-          {payerTag ? <Text style={rowStyles.payerTag}> · {payerTag}</Text> : null}
-        </Text>
-        {(txn.name || txn.notes || txn.account_name) ? (
-          <Text style={rowStyles.sub} numberOfLines={1}>
-            {[txn.name ? txn.category_name : null, txn.account_name, txn.notes].filter(Boolean).join(' · ')}
+    <Swipeable ref={swipeRef} renderRightActions={renderRightActions} overshootRight={false} rightThreshold={40}>
+      <TouchableOpacity style={rowStyles.row} onPress={onEdit} activeOpacity={0.7}>
+        <CategoryIcon
+          iconKey={txn.category_emoji}
+          size={16}
+          color={colors.primary}
+          bgColor={colors.primary + '14'}
+          containerSize={36}
+        />
+        <View style={rowStyles.info}>
+          <Text style={rowStyles.category} numberOfLines={1}>
+            {txn.name ?? txn.category_name ?? '未分類'}
+            {payerTag ? <Text style={rowStyles.payerTag}> · {payerTag}</Text> : null}
           </Text>
-        ) : null}
-        {showDate && <Text style={rowStyles.date}>{txn.date}</Text>}
-      </View>
-      <Text style={[rowStyles.amount, { color: amountColor }]}>
-        {sign} {txn.amount.toLocaleString('zh-TW')}
-      </Text>
-    </TouchableOpacity>
+          {(txn.name || txn.notes || txn.account_name) ? (
+            <Text style={rowStyles.sub} numberOfLines={1}>
+              {[txn.name ? txn.category_name : null, txn.account_name, txn.notes].filter(Boolean).join(' · ')}
+            </Text>
+          ) : null}
+          {showDate && <Text style={rowStyles.date}>{txn.date}</Text>}
+        </View>
+        <Text style={[rowStyles.amount, { color: amountColor }]}>
+          {sign} {txn.amount.toLocaleString('zh-TW')}
+        </Text>
+      </TouchableOpacity>
+    </Swipeable>
   );
 }
 
@@ -380,6 +398,11 @@ const rowStyles = StyleSheet.create({
   sub: { fontSize: typography.sizes.xs, color: colors.textSecondary, marginTop: 2 },
   date: { fontSize: typography.sizes.xs, color: colors.textSecondary, marginTop: 2 },
   amount: { fontSize: typography.sizes.md, fontWeight: typography.weights.semibold },
+  deleteAction: {
+    backgroundColor: colors.expense, justifyContent: 'center', alignItems: 'center',
+    width: 80, marginBottom: 2, borderRadius: radius.md,
+  },
+  deleteActionText: { color: colors.white, fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold },
 });
 
 const styles = StyleSheet.create({

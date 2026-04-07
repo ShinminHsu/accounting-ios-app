@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, Modal, TextInput, TouchableOpacity,
-  ScrollView, Alert, ActivityIndicator, Platform, KeyboardAvoidingView,
+  ScrollView, Alert, ActivityIndicator, Platform, KeyboardAvoidingView, Keyboard,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -212,7 +212,7 @@ export function EditTransactionSheet({ visible, transaction, onClose, onSaved, o
                   onChangeText={setName}
                   returnKeyType="done"
                 />
-                <TouchableOpacity style={styles.datePill} onPress={() => setShowDatePicker(true)}>
+                <TouchableOpacity style={styles.datePill} onPress={() => { Keyboard.dismiss(); setShowDatePicker(true); }}>
                   <CalendarDays size={12} color={colors.textSecondary} />
                   <Text style={styles.datePillText}>{dateStr}</Text>
                 </TouchableOpacity>
@@ -238,13 +238,21 @@ export function EditTransactionSheet({ visible, transaction, onClose, onSaved, o
             </View>
 
             {showDatePicker && (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                onChange={(_, d) => { setShowDatePicker(false); if (d) setDate(d); }}
-                maximumDate={new Date()}
-              />
+              <View>
+                <DateTimePicker
+                  value={date}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  onChange={(_, d) => { if (d) setDate(d); }}
+                  maximumDate={new Date()}
+                />
+                <TouchableOpacity
+                  style={styles.dateConfirmBtn}
+                  onPress={() => setShowDatePicker(false)}
+                >
+                  <Text style={styles.dateConfirmText}>完成</Text>
+                </TouchableOpacity>
+              </View>
             )}
 
             {/* Payer type (read-only) */}
@@ -437,6 +445,12 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontSize: typography.sizes.sm, color: colors.text },
   chipTextActive: { color: colors.white, fontWeight: typography.weights.semibold },
+  dateConfirmBtn: {
+    alignSelf: 'flex-end', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
+  },
+  dateConfirmText: {
+    fontSize: typography.sizes.md, color: colors.primary, fontWeight: typography.weights.semibold,
+  },
   notesInput: {
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm,
     padding: spacing.sm, fontSize: typography.sizes.md, color: colors.text,
